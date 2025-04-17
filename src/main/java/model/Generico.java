@@ -6,8 +6,9 @@ public class Generico extends Utente {
         super(nomeUtente, password, nome, cognome);
     }
 
+    // Logica dei metodi da implementare
     public void prenota() {}
-    public void cercaPrenotazione(String numeroVolo) {}
-    public void cercaPrenotazionePerPasseggero(String nomePasseggero) {}
+    public void cercaPrenotazione(String codiceVolo) {}
+    public void cercaPrenotazione(String nomePasseggero, String cognomePasseggero) {}
     public void segnalaSmarrimento() {}
 }

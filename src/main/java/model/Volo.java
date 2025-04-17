@@ -1,31 +1,33 @@
 package model;
 
-import java.util.Date;
+import java.time.LocalDate;
+
 
 public class Volo {
-    private String numeroVolo;
+    private String codiceVolo;
     private String compagnia;
     private String origine;
     private String destinazione;
     private String orarioPrevisto;
     private StatoVolo stato;
-    private Date data;
-    private int ritardo;
+    private LocalDate data;
+    private int tempoRitardo;
 
-    public Volo(String numeroVolo, String compagnia, String origine, String destinazione,
-                String orarioPrevisto, StatoVolo stato, Date data, int ritardo) {
-        this.numeroVolo = numeroVolo;
+
+    public Volo(String codiceVolo, String compagnia, String origine, String destinazione,
+                String orarioPrevisto, StatoVolo stato, LocalDate data, int tempoRitardo) {
+        this.codiceVolo = codiceVolo;
         this.compagnia = compagnia;
         this.origine = origine;
         this.destinazione = destinazione;
         this.orarioPrevisto = orarioPrevisto;
         this.stato = stato;
         this.data = data;
-        this.ritardo = ritardo;
+        this.tempoRitardo = tempoRitardo;
     }
 
-    public String getNumeroVolo() { return numeroVolo; }
-    public void setNumeroVolo(String numeroVolo) { this.numeroVolo = numeroVolo; }
+    public String getCodiceVolo() { return codiceVolo; }
+    public void setCodiceVolo(String codiceVolo) { this.codiceVolo = codiceVolo; }
 
     public String getCompagnia() { return compagnia; }
     public void setCompagnia(String compagnia) { this.compagnia = compagnia; }
@@ -42,9 +44,9 @@ public class Volo {
     public StatoVolo getStato() { return stato; }
     public void setStato(StatoVolo stato) { this.stato = stato; }
 
-    public Date getData() { return data; }
-    public void setData(Date data) { this.data = data; }
+    public LocalDate getData() { return data; }
+    public void setData(LocalDate data) { this.data = data; }
 
-    public int getRitardo() { return ritardo; }
-    public void setRitardo(int ritardo) { this.ritardo = ritardo; }
+    public int getTempoRitardo() { return tempoRitardo; }
+    public void setTempoRitardo(int tempoRitardo) { this.tempoRitardo = tempoRitardo; }
 }

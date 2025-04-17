@@ -1,24 +1,31 @@
+import model.Amministratore;
+import model.Generico;
 import model.Volo;
+import model.StatoVolo;
+
+import java.time.LocalDate;
 
 
 public class Main {
     public static void main(String[] args) {
-        //TIP Press <shortcut actionId="ShowIntentionActions"/> with your caret at the highlighted text
-        // to see how IntelliJ IDEA suggests fixing it.
-        System.out.printf("questo è il branch test massimo");
+
+        // TEST MAIN | Istanziamento degli oggetti
+
+        // Creazione oggetto Amministratore
+        Amministratore u = new Amministratore("Amministratore 1", "123ABC", "Gennaro",
+                "Esposito");
+
+        // Creazione oggetto Generico
+        Generico g = new Generico("Pippo125", "123BC", "Pippo","Rossi");
+
+        // Creazione oggetto Volo
+        Volo v = new Volo("0403A", "Luftansa","Napoli","Dubai",
+                "12:20",StatoVolo.programmato, LocalDate.of(2004,04,10),
+                14);
 
 
-if(2==2){
-    System.out.printf(" non va in conflitto?");
-    System.out.println("come va la vita?");
-    System.out.println("come va la vita?");
-}
-
-        for (int i = 10; i <= 16; i++) {
-
-        
-
-            System.out.println("i != " + i);
-        }
+        System.out.printf("\n Nome e Cognome amministratore: %s %s ", u.getNome(), u.getCognome());
+        System.out.printf("\n Nome utente e Password generico: %s %s", g.getNomeUtente(), g.getPassword());
+        System.out.printf("\n Compagnia e Data volo:  %s %s", v.getCompagnia(), v.getData());
     }
 }

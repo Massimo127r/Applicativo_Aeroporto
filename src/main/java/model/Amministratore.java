@@ -6,6 +6,7 @@ public class Amministratore extends Utente {
         super(nomeUtente, password, nome, cognome);
     }
 
+    // Logica dei metodi da implementare
     public void inserisciVolo() {}
     public void modificaVolo() {}
     public void assegnaGate() {}

@@ -1,10 +1,10 @@
 package model;
 
 public class Gate {
-    private String codice;
+    private int codice;
 
-    public Gate(String codice) { this.codice = codice; }
+    public Gate(int codice) { this.codice = codice; }
 
-    public String getCodice() { return codice; }
-    public void setCodice(String codice) { this.codice = codice; }
+    public int getCodice() { return codice; }
+    public void setCodice(int codice) { this.codice = codice; }
 }

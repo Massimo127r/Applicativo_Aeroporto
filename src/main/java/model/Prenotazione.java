@@ -32,6 +32,6 @@ public class Prenotazione {
     public void setBagagli(List<Bagaglio> bagagli) { this.bagagli = bagagli; }
 
     public void checkin() {
-        // Logica check-in
+        // Logica check-in da implementare
     }
 }

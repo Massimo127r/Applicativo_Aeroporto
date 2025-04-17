@@ -2,7 +2,7 @@
 package model;
 
 // Utente.java
-public abstract class Utente {
+public class Utente {
     protected String nomeUtente;
     protected String password;
     protected String nome;
@@ -28,6 +28,6 @@ public abstract class Utente {
     public void setCognome(String cognome) { this.cognome = cognome; }
 
     public void visualizzaVoli() {
-        // Logica per visualizzare voli
+        // Logica per visualizzare voli da implementare
     }
 }
