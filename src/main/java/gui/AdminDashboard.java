@@ -530,6 +530,61 @@ public class AdminDashboard extends JFrame {
 
                     // Update the selected flight
                     Volo selectedFlight = flights.get(selectedIndex);
+
+                    // Check if origin or destination is Napoli
+                    String originalOrigin = selectedFlight.getOrigine();
+                    String originalDestination = selectedFlight.getDestinazione();
+
+                    // Constraint: Admin can only update the city that is different from Napoli
+                    if (originalOrigin.equals("Napoli") && !originalDestination.equals("Napoli")) {
+                        // If origin is Napoli, only allow updating destination
+                        if (!origin.equals("Napoli")) {
+                            JOptionPane.showMessageDialog(AdminDashboard.this,
+                                "Non è possibile modificare l'origine da Napoli ad altra città",
+                                "Errore", JOptionPane.ERROR_MESSAGE);
+                            return;
+                        }
+                        // Prevent setting destination to Napoli (both would be Napoli)
+                        if (destination.equals("Napoli")) {
+                            JOptionPane.showMessageDialog(AdminDashboard.this,
+                                "Non è possibile impostare sia origine che destinazione a Napoli",
+                                "Errore", JOptionPane.ERROR_MESSAGE);
+                            return;
+                        }
+                    } else if (!originalOrigin.equals("Napoli") && originalDestination.equals("Napoli")) {
+                        // If destination is Napoli, only allow updating origin
+                        if (!destination.equals("Napoli")) {
+                            JOptionPane.showMessageDialog(AdminDashboard.this,
+                                "Non è possibile modificare la destinazione da Napoli ad altra città",
+                                "Errore", JOptionPane.ERROR_MESSAGE);
+                            return;
+                        }
+                        // Prevent setting origin to Napoli (both would be Napoli)
+                        if (origin.equals("Napoli")) {
+                            JOptionPane.showMessageDialog(AdminDashboard.this,
+                                "Non è possibile impostare sia origine che destinazione a Napoli",
+                                "Errore", JOptionPane.ERROR_MESSAGE);
+                            return;
+                        }
+                    } else if (originalOrigin.equals("Napoli") && originalDestination.equals("Napoli")) {
+                        // If both are Napoli (shouldn't happen normally), don't allow changes
+                        if (!origin.equals("Napoli") || !destination.equals("Napoli")) {
+                            JOptionPane.showMessageDialog(AdminDashboard.this,
+                                "Non è possibile modificare questo volo",
+                                "Errore", JOptionPane.ERROR_MESSAGE);
+                            return;
+                        }
+                    } else {
+                        // Neither origin nor destination is Napoli
+                        // At least one of them must remain different from Napoli
+                        if (origin.equals("Napoli") && destination.equals("Napoli")) {
+                            JOptionPane.showMessageDialog(AdminDashboard.this,
+                                "Non è possibile impostare sia origine che destinazione a Napoli",
+                                "Errore", JOptionPane.ERROR_MESSAGE);
+                            return;
+                        }
+                    }
+
                     selectedFlight.setCompagnia(airline);
                     selectedFlight.setOrigine(origin);
                     selectedFlight.setDestinazione(destination);
@@ -963,9 +1018,10 @@ public class AdminDashboard extends JFrame {
                         "Stato del bagaglio aggiornato con successo",
                         "Successo", JOptionPane.INFORMATION_MESSAGE);
 
-                    // If the status is no longer "smarrito", remove it from the table
+                    // If the status is no longer "smarrito", remove only this row from the table
                     if (newStatus != StatoBagaglio.smarrito) {
-                        updateLostBaggageTable(lostBaggageTable);
+                        DefaultTableModel model = (DefaultTableModel) lostBaggageTable.getModel();
+                        model.removeRow(row);
                     }
 
                     break;
