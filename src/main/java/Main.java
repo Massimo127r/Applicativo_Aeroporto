@@ -1,5 +1,4 @@
-package main.java;
-
+import gui.Login;
 import javax.swing.SwingUtilities;
 
 public class Main {
@@ -7,8 +6,8 @@ public class Main {
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
-                //  LoginFrame loginFrame = new LoginFrame();
-              //  loginFrame.setVisible(true);
+                Login loginFrame = new Login();
+                loginFrame.setVisible(true);
             }
         });
     }

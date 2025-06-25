@@ -1,0 +1,863 @@
+package gui;
+
+import model.*;
+
+import javax.swing.*;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.DefaultTableModel;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+
+public class UserDashboard extends JFrame {
+    private JPanel mainPanel;
+    private JTabbedPane tabbedPane;
+
+    // Homepage tab components
+    private JPanel homepagePanel;
+    private JTable flightsTable;
+    private JPanel searchPanel;
+    private JTextField searchField;
+    private JComboBox<String> searchTypeComboBox;
+
+    // Booking tab components
+    private JPanel bookingPanel;
+    private JComboBox<String> flightComboBox;
+    private JTextField passengerNameField;
+    private JTextField passengerSurnameField;
+    private JTextField passengerDocumentField;
+    private JTextField seatField;
+    private JSpinner baggageCountSpinner;
+    private JTable bookingsTable;
+
+    // My Flights tab components
+    private JPanel myFlightsPanel;
+    private JTable myFlightsTable;
+    private JTextField myFlightsSearchField;
+
+    // Baggage tracking tab components
+    private JPanel baggageTrackingPanel;
+    private JTextField baggageCodeField;
+    private JLabel baggageStatusLabel;
+    private JButton reportLostButton;
+
+    // Data
+    private List<Volo> flights;
+    private List<Prenotazione> bookings;
+    private List<Bagaglio> baggages;
+    private Generico user;
+
+    public UserDashboard(Generico user) {
+        this.user = user;
+
+        // Initialize test data
+        initializeTestData();
+
+        // Set up the frame
+        setTitle("Dashboard Utente - Aeroporto di Napoli");
+        setSize(800, 600);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
+
+        // Create main panel with BorderLayout
+        mainPanel = new JPanel(new BorderLayout());
+
+        // Create tabbed pane
+        tabbedPane = new JTabbedPane();
+
+        // Create and add panels for each tab
+        createHomepagePanel();
+        createBookingPanel();
+        createMyFlightsPanel();
+        createBaggageTrackingPanel();
+
+        // Add tabbed pane to main panel
+        mainPanel.add(tabbedPane, BorderLayout.CENTER);
+
+        // Add welcome label at the top
+        JLabel welcomeLabel = new JLabel("Benvenuto, " + user.getNome() + " " + user.getCognome() + "!");
+        welcomeLabel.setHorizontalAlignment(JLabel.CENTER);
+        welcomeLabel.setFont(new Font("Arial", Font.BOLD, 16));
+        welcomeLabel.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 0));
+        mainPanel.add(welcomeLabel, BorderLayout.NORTH);
+
+        // Set main panel as content pane
+        setContentPane(mainPanel);
+    }
+
+    private void initializeTestData() {
+        // Initialize flights
+        flights = new ArrayList<>();
+        flights.add(new Volo("AZ1234", "Alitalia", "Napoli", "Roma", "10:00", StatoVolo.programmato, LocalDate.now(), 0));
+        flights.add(new Volo("FR5678", "Ryanair", "Napoli", "Milano", "12:30", StatoVolo.inRitardo, LocalDate.now(), 30));
+        flights.add(new Volo("BA9012", "British Airways", "Londra", "Napoli", "15:45", StatoVolo.atterrato, LocalDate.now(), 0));
+        flights.add(new Volo("LH1357", "Lufthansa", "Napoli", "Francoforte", "18:15", StatoVolo.cancellato, LocalDate.now(), 0));
+
+        // Initialize bookings
+        bookings = new ArrayList<>();
+
+        // Initialize baggages
+        baggages = new ArrayList<>();
+    }
+
+    private void createHomepagePanel() {
+        homepagePanel = new JPanel(new BorderLayout());
+
+        // Create search panel
+        searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        searchPanel.setBorder(BorderFactory.createTitledBorder("Ricerca Voli"));
+
+        searchTypeComboBox = new JComboBox<>(new String[] {
+            "Tutti", "Data", "Compagnia", "Codice Volo", "Aeroporto di Partenza", "Aeroporto di Arrivo"
+        });
+        searchField = new JTextField(20);
+        JButton searchButton = new JButton("Cerca");
+
+        searchButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                filterFlights();
+            }
+        });
+
+        searchPanel.add(new JLabel("Cerca per:"));
+        searchPanel.add(searchTypeComboBox);
+        searchPanel.add(searchField);
+        searchPanel.add(searchButton);
+
+        homepagePanel.add(searchPanel, BorderLayout.NORTH);
+
+        // Create table model with column names
+        DefaultTableModel model = new DefaultTableModel() {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false; // Make all cells non-editable
+            }
+        };
+
+        model.addColumn("Codice Volo");
+        model.addColumn("Compagnia");
+        model.addColumn("Origine");
+        model.addColumn("Destinazione");
+        model.addColumn("Orario");
+        model.addColumn("Stato");
+        model.addColumn("Data");
+        model.addColumn("Ritardo (min)");
+
+        // Add data to table model
+        for (Volo volo : flights) {
+            model.addRow(new Object[]{
+                volo.getCodiceVolo(),
+                volo.getCompagnia(),
+                volo.getOrigine(),
+                volo.getDestinazione(),
+                volo.getOrarioPrevisto(),
+                volo.getStato(),
+                volo.getData(),
+                volo.getTempoRitardo()
+            });
+        }
+
+        // Create table with model
+        flightsTable = new JTable(model);
+
+        // Set custom renderer for status column
+        flightsTable.getColumnModel().getColumn(5).setCellRenderer(new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+
+                if (value != null) {
+                    StatoVolo stato = (StatoVolo) value;
+                    if (stato == StatoVolo.inRitardo) {
+                        c.setBackground(Color.RED);
+                        c.setForeground(Color.WHITE);
+                    } else if (stato == StatoVolo.cancellato) {
+                        c.setBackground(Color.YELLOW);
+                        c.setForeground(Color.BLACK);
+                    } else {
+                        c.setBackground(isSelected ? table.getSelectionBackground() : table.getBackground());
+                        c.setForeground(isSelected ? table.getSelectionForeground() : table.getForeground());
+                    }
+                }
+
+                return c;
+            }
+        });
+
+        // Add table to scroll pane
+        JScrollPane scrollPane = new JScrollPane(flightsTable);
+        homepagePanel.add(scrollPane, BorderLayout.CENTER);
+
+        // Add refresh button
+        JButton refreshButton = new JButton("Aggiorna");
+        refreshButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                refreshFlightsTable();
+            }
+        });
+
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.add(refreshButton);
+        homepagePanel.add(buttonPanel, BorderLayout.SOUTH);
+
+        // Add panel to tabbed pane
+        tabbedPane.addTab("Home", homepagePanel);
+    }
+
+    private void filterFlights() {
+        String searchText = searchField.getText().toLowerCase();
+        String searchType = (String) searchTypeComboBox.getSelectedItem();
+
+        DefaultTableModel model = (DefaultTableModel) flightsTable.getModel();
+        model.setRowCount(0);
+
+        for (Volo volo : flights) {
+            boolean match = false;
+
+            if (searchType.equals("Tutti") || searchText.isEmpty()) {
+                match = true;
+            } else if (searchType.equals("Data") && volo.getData().toString().toLowerCase().contains(searchText)) {
+                match = true;
+            } else if (searchType.equals("Compagnia") && volo.getCompagnia().toLowerCase().contains(searchText)) {
+                match = true;
+            } else if (searchType.equals("Codice Volo") && volo.getCodiceVolo().toLowerCase().contains(searchText)) {
+                match = true;
+            } else if (searchType.equals("Aeroporto di Partenza") && volo.getOrigine().toLowerCase().contains(searchText)) {
+                match = true;
+            } else if (searchType.equals("Aeroporto di Arrivo") && volo.getDestinazione().toLowerCase().contains(searchText)) {
+                match = true;
+            }
+
+            if (match) {
+                model.addRow(new Object[]{
+                    volo.getCodiceVolo(),
+                    volo.getCompagnia(),
+                    volo.getOrigine(),
+                    volo.getDestinazione(),
+                    volo.getOrarioPrevisto(),
+                    volo.getStato(),
+                    volo.getData(),
+                    volo.getTempoRitardo()
+                });
+            }
+        }
+    }
+
+    private void refreshFlightsTable() {
+        DefaultTableModel model = (DefaultTableModel) flightsTable.getModel();
+        model.setRowCount(0);
+
+        for (Volo volo : flights) {
+            model.addRow(new Object[]{
+                volo.getCodiceVolo(),
+                volo.getCompagnia(),
+                volo.getOrigine(),
+                volo.getDestinazione(),
+                volo.getOrarioPrevisto(),
+                volo.getStato(),
+                volo.getData(),
+                volo.getTempoRitardo()
+            });
+        }
+    }
+
+    private void createBookingPanel() {
+        bookingPanel = new JPanel(new BorderLayout());
+
+        // Create form panel
+        JPanel formPanel = new JPanel(new GridLayout(0, 2, 10, 10));
+        formPanel.setBorder(BorderFactory.createTitledBorder("Nuova Prenotazione"));
+
+        // Add form fields
+        flightComboBox = new JComboBox<>();
+        for (Volo volo : flights) {
+            if (volo.getStato() != StatoVolo.cancellato && volo.getStato() != StatoVolo.atterrato) {
+                flightComboBox.addItem(volo.getCodiceVolo() + " - " + volo.getCompagnia() + " (" +
+                                      volo.getOrigine() + " -> " + volo.getDestinazione() + ")");
+            }
+        }
+
+        passengerNameField = new JTextField();
+        passengerSurnameField = new JTextField();
+        passengerDocumentField = new JTextField();
+        seatField = new JTextField();
+        baggageCountSpinner = new JSpinner(new SpinnerNumberModel(0, 0, 5, 1));
+
+        formPanel.add(new JLabel("Volo:"));
+        formPanel.add(flightComboBox);
+        formPanel.add(new JLabel("Nome Passeggero:"));
+        formPanel.add(passengerNameField);
+        formPanel.add(new JLabel("Cognome Passeggero:"));
+        formPanel.add(passengerSurnameField);
+        formPanel.add(new JLabel("Numero Documento:"));
+        formPanel.add(passengerDocumentField);
+        formPanel.add(new JLabel("Posto:"));
+        formPanel.add(seatField);
+        formPanel.add(new JLabel("Numero Bagagli:"));
+        formPanel.add(baggageCountSpinner);
+
+        // Add book button
+        JButton bookButton = new JButton("Prenota");
+        bookButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                bookFlight();
+            }
+        });
+
+        JPanel bookButtonPanel = new JPanel();
+        bookButtonPanel.add(bookButton);
+        formPanel.add(new JLabel(""));
+        formPanel.add(bookButtonPanel);
+
+        // Add form panel to top
+        bookingPanel.add(formPanel, BorderLayout.NORTH);
+
+        // Create bookings table
+        DefaultTableModel model = new DefaultTableModel() {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false; // Make all cells non-editable
+            }
+        };
+
+        model.addColumn("Numero Biglietto");
+        model.addColumn("Passeggero");
+        model.addColumn("Posto");
+        model.addColumn("Stato");
+        model.addColumn("Bagagli");
+
+        bookingsTable = new JTable(model);
+
+        // Add mouse listener to show baggage details when a booking is clicked
+        bookingsTable.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                int row = bookingsTable.rowAtPoint(evt.getPoint());
+                if (row >= 0) {
+                    showBaggageDetails(bookings.get(row));
+                }
+            }
+        });
+
+        // Add table to scroll pane with title
+        JScrollPane scrollPane = new JScrollPane(bookingsTable);
+        scrollPane.setBorder(BorderFactory.createTitledBorder("Le Mie Prenotazioni"));
+        bookingPanel.add(scrollPane, BorderLayout.CENTER);
+
+        // Add panel to tabbed pane
+        tabbedPane.addTab("Prenotazione Voli", bookingPanel);
+    }
+
+    private void bookFlight() {
+        String flightString = (String) flightComboBox.getSelectedItem();
+        if (flightString == null) {
+            JOptionPane.showMessageDialog(this, "Seleziona un volo", "Errore", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        String flightCode = flightString.split(" - ")[0];
+        String name = passengerNameField.getText();
+        String surname = passengerSurnameField.getText();
+        String document = passengerDocumentField.getText();
+        String seat = seatField.getText();
+        int baggageCount = (int) baggageCountSpinner.getValue();
+
+        if (name.isEmpty() || surname.isEmpty() || document.isEmpty() || seat.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Tutti i campi sono obbligatori", "Errore", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        // Generate ticket number
+        String ticketNumber = "TKT" + System.currentTimeMillis() % 10000;
+
+        // Create passenger
+        Passeggero passenger = new Passeggero(name, surname, document);
+
+        // Create booking
+        Prenotazione booking = new Prenotazione(ticketNumber, seat, StatoPrenotazione.inAttesa, passenger);
+
+        // Add baggage if needed
+        StringBuilder baggageInfo = new StringBuilder();
+        if (baggageCount > 0) {
+            List<Bagaglio> bookingBaggages = new ArrayList<>();
+            baggageInfo.append("\n\nID Bagagli:");
+            for (int i = 0; i < baggageCount; i++) {
+                String baggageCode = "BAG" + ticketNumber + "-" + (i + 1);
+                Bagaglio baggage = new Bagaglio(baggageCode, StatoBagaglio.caricato);
+                bookingBaggages.add(baggage);
+                baggages.add(baggage);
+                baggageInfo.append("\n- ").append(baggageCode);
+            }
+            booking.setBagagli(bookingBaggages);
+        }
+
+        // Add booking to list
+        bookings.add(booking);
+
+        // Update bookings table
+        updateBookingsTable();
+
+        // Clear form
+        passengerNameField.setText("");
+        passengerSurnameField.setText("");
+        passengerDocumentField.setText("");
+        seatField.setText("");
+        baggageCountSpinner.setValue(0);
+
+        JOptionPane.showMessageDialog(this,
+            "Prenotazione effettuata con successo!\nNumero Biglietto: " + ticketNumber + baggageInfo.toString(),
+            "Prenotazione Confermata", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    private void updateBookingsTable() {
+        DefaultTableModel model = (DefaultTableModel) bookingsTable.getModel();
+        model.setRowCount(0);
+
+        for (Prenotazione booking : bookings) {
+            Passeggero passenger = booking.getPasseggero();
+            int baggageCount = booking.getBagagli() != null ? booking.getBagagli().size() : 0;
+
+            model.addRow(new Object[]{
+                booking.getNumeroBiglietto(),
+                passenger.getNome() + " " + passenger.getCognome(),
+                booking.getPosto(),
+                booking.getStato(),
+                baggageCount
+            });
+        }
+
+        // Also update My Flights table if it exists
+        if (myFlightsTable != null) {
+            updateMyFlightsTable();
+        }
+    }
+
+    private void createMyFlightsPanel() {
+        myFlightsPanel = new JPanel(new BorderLayout());
+
+        // Create search panel
+        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        searchPanel.setBorder(BorderFactory.createTitledBorder("Ricerca Prenotazioni"));
+
+        myFlightsSearchField = new JTextField(20);
+        JButton searchButton = new JButton("Cerca");
+
+        searchButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                filterMyFlights();
+            }
+        });
+
+        searchPanel.add(new JLabel("Cerca per nome passeggero o numero volo:"));
+        searchPanel.add(myFlightsSearchField);
+        searchPanel.add(searchButton);
+
+        myFlightsPanel.add(searchPanel, BorderLayout.NORTH);
+
+        // Create table model with column names
+        DefaultTableModel model = new DefaultTableModel() {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false; // Make all cells non-editable
+            }
+        };
+
+        model.addColumn("Numero Biglietto");
+        model.addColumn("Passeggero");
+        model.addColumn("Posto");
+        model.addColumn("Stato");
+        model.addColumn("Bagagli");
+
+        myFlightsTable = new JTable(model);
+
+        // Add mouse listener to show baggage details when a booking is clicked
+        myFlightsTable.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                int row = myFlightsTable.rowAtPoint(evt.getPoint());
+                if (row >= 0) {
+                    showBaggageDetails(bookings.get(row));
+                }
+            }
+        });
+
+        // Add table to scroll pane
+        JScrollPane scrollPane = new JScrollPane(myFlightsTable);
+        myFlightsPanel.add(scrollPane, BorderLayout.CENTER);
+
+        // Add refresh button
+        JButton refreshButton = new JButton("Aggiorna");
+        refreshButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                updateMyFlightsTable();
+            }
+        });
+
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.add(refreshButton);
+        myFlightsPanel.add(buttonPanel, BorderLayout.SOUTH);
+
+        // Add panel to tabbed pane
+        tabbedPane.addTab("I Miei Voli", myFlightsPanel);
+    }
+
+    private void filterMyFlights() {
+        String searchText = myFlightsSearchField.getText().toLowerCase();
+
+        DefaultTableModel model = (DefaultTableModel) myFlightsTable.getModel();
+        model.setRowCount(0);
+
+        for (Prenotazione booking : bookings) {
+            Passeggero passenger = booking.getPasseggero();
+            String passengerName = passenger.getNome() + " " + passenger.getCognome();
+            int baggageCount = booking.getBagagli() != null ? booking.getBagagli().size() : 0;
+
+            if (searchText.isEmpty() ||
+                passengerName.toLowerCase().contains(searchText) ||
+                booking.getNumeroBiglietto().toLowerCase().contains(searchText)) {
+
+                model.addRow(new Object[]{
+                    booking.getNumeroBiglietto(),
+                    passengerName,
+                    booking.getPosto(),
+                    booking.getStato(),
+                    baggageCount
+                });
+            }
+        }
+    }
+
+    private void updateMyFlightsTable() {
+        DefaultTableModel model = (DefaultTableModel) myFlightsTable.getModel();
+        model.setRowCount(0);
+
+        for (Prenotazione booking : bookings) {
+            Passeggero passenger = booking.getPasseggero();
+            int baggageCount = booking.getBagagli() != null ? booking.getBagagli().size() : 0;
+
+            model.addRow(new Object[]{
+                booking.getNumeroBiglietto(),
+                passenger.getNome() + " " + passenger.getCognome(),
+                booking.getPosto(),
+                booking.getStato(),
+                baggageCount
+            });
+        }
+    }
+
+    private void createBaggageTrackingPanel() {
+        baggageTrackingPanel = new JPanel(new BorderLayout());
+
+        // Create form panel for searching baggage by flight code and baggage code
+        JPanel formPanel = new JPanel(new GridLayout(0, 2, 10, 10));
+        formPanel.setBorder(BorderFactory.createTitledBorder("Ricerca Bagagli"));
+
+        JTextField flightCodeField = new JTextField();
+        baggageCodeField = new JTextField();
+
+        JButton searchButton = new JButton("Cerca");
+        searchButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                String flightCode = flightCodeField.getText().trim();
+                String baggageCode = baggageCodeField.getText().trim();
+
+                // Get the baggage table from the scroll pane
+                JScrollPane scrollPane = (JScrollPane) baggageTrackingPanel.getComponent(1);
+                JTable baggageTable = (JTable) scrollPane.getViewport().getView();
+
+                // Filter the table based on search criteria
+                DefaultTableModel model = (DefaultTableModel) baggageTable.getModel();
+                model.setRowCount(0);
+
+                for (Bagaglio baggage : baggages) {
+                    // Find the booking that contains this baggage
+                    String flightInfo = "N/A";
+                    for (Prenotazione booking : bookings) {
+                        if (booking.getBagagli() != null) {
+                            for (Bagaglio b : booking.getBagagli()) {
+                                if (b.getCodice().equals(baggage.getCodice())) {
+                                    flightInfo = "Prenotazione: " + booking.getNumeroBiglietto();
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    // Check if baggage matches search criteria
+                    boolean matchesFlightCode = flightCode.isEmpty() || flightInfo.toLowerCase().contains(flightCode.toLowerCase());
+                    boolean matchesBaggageCode = baggageCode.isEmpty() || baggage.getCodice().toLowerCase().contains(baggageCode.toLowerCase());
+
+                    if (matchesFlightCode && matchesBaggageCode) {
+                        // Check if baggage is marked as lost
+                        String status = baggage.getStato().toString();
+                        if (baggage.getStato().toString().equals("smarrito")) {
+                            status = "Smarrimento segnalato";
+                        }
+
+                        model.addRow(new Object[]{
+                            baggage.getCodice(),
+                            flightInfo,
+                            status,
+                            "Segnala Smarrimento"
+                        });
+                    }
+                }
+            }
+        });
+
+        formPanel.add(new JLabel("Codice Volo:"));
+        formPanel.add(flightCodeField);
+        formPanel.add(new JLabel("Codice Bagaglio:"));
+        formPanel.add(baggageCodeField);
+        formPanel.add(new JLabel(""));
+        formPanel.add(searchButton);
+
+        baggageTrackingPanel.add(formPanel, BorderLayout.NORTH);
+
+        // Create table to show all baggage
+        DefaultTableModel model = new DefaultTableModel() {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false; // Make all cells non-editable
+            }
+        };
+
+        model.addColumn("Codice Bagaglio");
+        model.addColumn("Volo");
+        model.addColumn("Stato");
+        model.addColumn("Azioni");
+
+        JTable baggageTable = new JTable(model);
+
+        // Set custom renderer for the status column
+        baggageTable.getColumnModel().getColumn(2).setCellRenderer(new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+
+                String status = (String) value;
+                if (status != null && status.contains("Smarrimento segnalato")) {
+                    c.setBackground(Color.RED);
+                    c.setForeground(Color.WHITE);
+                } else {
+                    c.setBackground(isSelected ? table.getSelectionBackground() : table.getBackground());
+                    c.setForeground(isSelected ? table.getSelectionForeground() : table.getForeground());
+                }
+
+                return c;
+            }
+        });
+
+        // Set custom renderer for the action column
+        baggageTable.getColumnModel().getColumn(3).setCellRenderer(new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+                JButton button = new JButton("Segnala Smarrimento");
+                button.setBackground(new Color(255, 200, 200));
+                return button;
+            }
+        });
+
+        // Add mouse listener to handle button clicks in the action column
+        baggageTable.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                int row = baggageTable.rowAtPoint(evt.getPoint());
+                int col = baggageTable.columnAtPoint(evt.getPoint());
+
+                if (row >= 0 && col == 3) { // Action column
+                    String baggageCode = (String) baggageTable.getValueAt(row, 0);
+                    reportLostBaggageFromTable(baggageCode, row, baggageTable);
+                }
+            }
+        });
+
+        // Add table to scroll pane
+        JScrollPane scrollPane = new JScrollPane(baggageTable);
+        scrollPane.setBorder(BorderFactory.createTitledBorder("Tutti i Bagagli"));
+        baggageTrackingPanel.add(scrollPane, BorderLayout.CENTER);
+
+        // Add refresh button
+        JButton refreshButton = new JButton("Aggiorna");
+        refreshButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                updateBaggageTable(baggageTable);
+            }
+        });
+
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.add(refreshButton);
+        baggageTrackingPanel.add(buttonPanel, BorderLayout.SOUTH);
+
+        // Initialize the table
+        updateBaggageTable(baggageTable);
+
+        // Add panel to tabbed pane
+        tabbedPane.addTab("Monitoraggio Bagagli", baggageTrackingPanel);
+    }
+
+    /**
+     * Updates the baggage table with the latest data
+     * @param baggageTable The table to update
+     */
+    private void updateBaggageTable(JTable baggageTable) {
+        DefaultTableModel model = (DefaultTableModel) baggageTable.getModel();
+        model.setRowCount(0);
+
+        for (Bagaglio baggage : baggages) {
+            // Find the booking that contains this baggage
+            String flightInfo = "N/A";
+            for (Prenotazione booking : bookings) {
+                if (booking.getBagagli() != null) {
+                    for (Bagaglio b : booking.getBagagli()) {
+                        if (b.getCodice().equals(baggage.getCodice())) {
+                            flightInfo = "Prenotazione: " + booking.getNumeroBiglietto();
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // Check if baggage is marked as lost
+            String status = baggage.getStato().toString();
+            if (baggage.getStato().toString().equals("smarrito")) {
+                status = "Smarrimento segnalato";
+            }
+
+            model.addRow(new Object[]{
+                baggage.getCodice(),
+                flightInfo,
+                status,
+                "Segnala Smarrimento"
+            });
+        }
+    }
+
+    /**
+     * Reports a baggage as lost from the baggage table
+     * @param baggageCode The code of the baggage to report as lost
+     * @param row The row in the table
+     * @param baggageTable The table containing the baggage
+     */
+    private void reportLostBaggageFromTable(String baggageCode, int row, JTable baggageTable) {
+        // Show dialog for description
+        String description = JOptionPane.showInputDialog(this,
+            "Inserisci una descrizione del bagaglio smarrito:",
+            "Segnalazione Smarrimento",
+            JOptionPane.PLAIN_MESSAGE);
+
+        if (description != null && !description.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                "Segnalazione inviata con successo!\nUn operatore ti contatterà al più presto.",
+                "Segnalazione Inviata",
+                JOptionPane.INFORMATION_MESSAGE);
+
+            // Mark the baggage as lost
+            for (Bagaglio baggage : baggages) {
+                if (baggage.getCodice().equals(baggageCode)) {
+                    // Set the baggage status to "smarrito"
+                    baggage.setStato(StatoBagaglio.smarrito);
+                    // Update the table
+                    updateBaggageTable(baggageTable);
+                    break;
+                }
+            }
+        }
+    }
+
+    private void trackBaggage() {
+        String code = baggageCodeField.getText();
+
+        if (code.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Inserisci il codice del bagaglio", "Errore", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        boolean found = false;
+        for (Bagaglio baggage : baggages) {
+            if (baggage.getCodice().equals(code)) {
+                baggageStatusLabel.setText("Stato: " + baggage.getStato());
+                reportLostButton.setEnabled(true);
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) {
+            baggageStatusLabel.setText("Stato: Non trovato");
+            reportLostButton.setEnabled(false);
+            JOptionPane.showMessageDialog(this, "Bagaglio non trovato", "Errore", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void reportLostBaggage() {
+        String code = baggageCodeField.getText();
+
+        // Show dialog for description
+        String description = JOptionPane.showInputDialog(this,
+            "Inserisci una descrizione del bagaglio smarrito:",
+            "Segnalazione Smarrimento",
+            JOptionPane.PLAIN_MESSAGE);
+
+        if (description != null && !description.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                "Segnalazione inviata con successo!\nUn operatore ti contatterà al più presto.",
+                "Segnalazione Inviata",
+                JOptionPane.INFORMATION_MESSAGE);
+
+            // Update the baggage status in the database
+            for (Bagaglio baggage : baggages) {
+                if (baggage.getCodice().equals(code)) {
+                    // Set the baggage status to "smarrito"
+                    baggage.setStato(StatoBagaglio.smarrito);
+                    // Update the status label
+                    baggageStatusLabel.setText("Stato: Smarrimento segnalato");
+                    baggageStatusLabel.setForeground(Color.RED);
+                    break;
+                }
+            }
+        }
+    }
+
+    /**
+     * Shows a dialog with baggage details for a booking
+     * @param booking The booking to show baggage details for
+     */
+    private void showBaggageDetails(Prenotazione booking) {
+        if (booking.getBagagli() == null || booking.getBagagli().isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                "Nessun bagaglio associato a questa prenotazione.",
+                "Dettagli Bagagli",
+                JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        // Create a panel to display baggage details
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+
+        // Add a label for each baggage
+        for (Bagaglio baggage : booking.getBagagli()) {
+            JLabel label = new JLabel("Codice: " + baggage.getCodice() + " - Stato: " + baggage.getStato());
+            panel.add(label);
+            panel.add(Box.createVerticalStrut(5)); // Add some spacing
+        }
+
+        // Show the dialog
+        JOptionPane.showMessageDialog(this,
+            panel,
+            "Dettagli Bagagli",
+            JOptionPane.INFORMATION_MESSAGE);
+    }
+}
