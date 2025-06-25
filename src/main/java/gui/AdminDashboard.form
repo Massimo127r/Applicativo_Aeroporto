@@ -9,7 +9,9 @@
     <children>
       <tabbedpane id="c0d0d" binding="tabbedPane">
         <constraints border-constraint="Center"/>
-        <properties/>
+        <properties>
+          <foreground color="-16449307"/>
+        </properties>
         <border type="none"/>
         <children>
           <grid id="a1b2c" binding="flightsPanel" layout-manager="BorderLayout" hgap="0" vgap="0">

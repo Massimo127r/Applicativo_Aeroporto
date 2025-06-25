@@ -59,15 +59,20 @@ public class UserDashboard extends JFrame {
 
         // Set up the frame
         setTitle("Dashboard Utente - Aeroporto di Napoli");
-        setSize(800, 600);
+        setSize(1000, 700);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 
+        // Apply theme to frame
+        UIManager.styleFrame(this);
+
         // Create main panel with BorderLayout
         mainPanel = new JPanel(new BorderLayout());
+        mainPanel.setBackground(UIManager.BACKGROUND_COLOR);
 
         // Create tabbed pane
         tabbedPane = new JTabbedPane();
+        UIManager.styleTabbedPane(tabbedPane);
 
         // Create and add panels for each tab
         createHomepagePanel();
@@ -81,8 +86,9 @@ public class UserDashboard extends JFrame {
         // Add welcome label at the top
         JLabel welcomeLabel = new JLabel("Benvenuto, " + user.getNome() + " " + user.getCognome() + "!");
         welcomeLabel.setHorizontalAlignment(JLabel.CENTER);
-        welcomeLabel.setFont(new Font("Arial", Font.BOLD, 16));
-        welcomeLabel.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 0));
+        welcomeLabel.setFont(UIManager.TITLE_FONT);
+        welcomeLabel.setForeground(UIManager.PRIMARY_COLOR);
+        welcomeLabel.setBorder(BorderFactory.createEmptyBorder(15, 0, 15, 0));
         mainPanel.add(welcomeLabel, BorderLayout.NORTH);
 
         // Set main panel as content pane
@@ -106,16 +112,33 @@ public class UserDashboard extends JFrame {
 
     private void createHomepagePanel() {
         homepagePanel = new JPanel(new BorderLayout());
+        homepagePanel.setBackground(UIManager.BACKGROUND_COLOR);
 
         // Create search panel
-        searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        searchPanel.setBorder(BorderFactory.createTitledBorder("Ricerca Voli"));
+        searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
+        searchPanel.setBackground(UIManager.BACKGROUND_COLOR);
+        searchPanel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createTitledBorder(
+                BorderFactory.createLineBorder(UIManager.SECONDARY_COLOR, 1),
+                "Ricerca Voli",
+                0,
+                0,
+                UIManager.HEADER_FONT,
+                UIManager.PRIMARY_COLOR
+            ),
+            BorderFactory.createEmptyBorder(10, 10, 10, 10)
+        ));
 
         searchTypeComboBox = new JComboBox<>(new String[] {
             "Tutti", "Data", "Compagnia", "Codice Volo", "Aeroporto di Partenza", "Aeroporto di Arrivo"
         });
+        UIManager.styleComboBox(searchTypeComboBox);
+
         searchField = new JTextField(20);
+        UIManager.styleTextField(searchField);
+
         JButton searchButton = new JButton("Cerca");
+        UIManager.styleButton(searchButton);
 
         searchButton.addActionListener(new ActionListener() {
             @Override
@@ -124,7 +147,11 @@ public class UserDashboard extends JFrame {
             }
         });
 
-        searchPanel.add(new JLabel("Cerca per:"));
+        JLabel searchLabel = new JLabel("Cerca per:");
+        searchLabel.setFont(UIManager.NORMAL_FONT);
+        searchLabel.setForeground(UIManager.TEXT_COLOR);
+
+        searchPanel.add(searchLabel);
         searchPanel.add(searchTypeComboBox);
         searchPanel.add(searchField);
         searchPanel.add(searchButton);
@@ -165,6 +192,9 @@ public class UserDashboard extends JFrame {
         // Create table with model
         flightsTable = new JTable(model);
 
+        // Apply table styling
+        UIManager.styleTable(flightsTable);
+
         // Set custom renderer for status column
         flightsTable.getColumnModel().getColumn(5).setCellRenderer(new DefaultTableCellRenderer() {
             @Override
@@ -174,27 +204,34 @@ public class UserDashboard extends JFrame {
                 if (value != null) {
                     StatoVolo stato = (StatoVolo) value;
                     if (stato == StatoVolo.inRitardo) {
-                        c.setBackground(Color.RED);
+                        c.setBackground(UIManager.ERROR_COLOR);
                         c.setForeground(Color.WHITE);
                     } else if (stato == StatoVolo.cancellato) {
-                        c.setBackground(Color.YELLOW);
+                        c.setBackground(UIManager.WARNING_COLOR);
                         c.setForeground(Color.BLACK);
+                    } else if (stato == StatoVolo.atterrato || stato == StatoVolo.decollato) {
+                        c.setBackground(UIManager.SUCCESS_COLOR);
+                        c.setForeground(Color.WHITE);
                     } else {
                         c.setBackground(isSelected ? table.getSelectionBackground() : table.getBackground());
-                        c.setForeground(isSelected ? table.getSelectionForeground() : table.getForeground());
+                        c.setForeground(isSelected ? table.getSelectionForeground() : UIManager.TEXT_COLOR);
                     }
                 }
 
+                ((JLabel)c).setHorizontalAlignment(JLabel.CENTER);
                 return c;
             }
         });
 
         // Add table to scroll pane
         JScrollPane scrollPane = new JScrollPane(flightsTable);
+        scrollPane.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        scrollPane.getViewport().setBackground(UIManager.BACKGROUND_COLOR);
         homepagePanel.add(scrollPane, BorderLayout.CENTER);
 
         // Add refresh button
         JButton refreshButton = new JButton("Aggiorna");
+        UIManager.styleButton(refreshButton);
         refreshButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -202,7 +239,8 @@ public class UserDashboard extends JFrame {
             }
         });
 
-        JPanel buttonPanel = new JPanel();
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
+        buttonPanel.setBackground(UIManager.BACKGROUND_COLOR);
         buttonPanel.add(refreshButton);
         homepagePanel.add(buttonPanel, BorderLayout.SOUTH);
 

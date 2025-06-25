@@ -29,9 +29,38 @@ public class Login extends JFrame {
 
         // Set up the frame
         setTitle("Aeroporto di Napoli - Login");
-        setSize(400, 300);
+        setSize(450, 350);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
+
+        // Apply theme to frame
+        UIManager.styleFrame(this);
+
+        // Style components
+        UIManager.stylePanel(mainPanel);
+        UIManager.stylePanel(formPanel);
+        UIManager.styleTextField(usernameField);
+        UIManager.stylePasswordField(passwordField);
+        UIManager.styleButton(loginButton);
+        UIManager.styleComboBox(userTypeComboBox);
+
+        // Set fonts for labels
+        for (Component comp : formPanel.getComponents()) {
+            if (comp instanceof JLabel) {
+                ((JLabel) comp).setFont(UIManager.NORMAL_FONT);
+                ((JLabel) comp).setForeground(UIManager.TEXT_COLOR);
+            }
+        }
+
+        // Style the welcome label
+        Component[] components = mainPanel.getComponents();
+        for (Component comp : components) {
+            if (comp instanceof JLabel && !(comp.equals(statusLabel))) {
+                JLabel welcomeLabel = (JLabel) comp;
+                welcomeLabel.setFont(UIManager.TITLE_FONT);
+                welcomeLabel.setForeground(UIManager.PRIMARY_COLOR);
+            }
+        }
 
         // Initialize user type combo box
         userTypeComboBox.addItem("Amministratore");
@@ -47,7 +76,7 @@ public class Login extends JFrame {
         });
 
         // Set initial status label color
-        statusLabel.setForeground(Color.RED);
+        statusLabel.setForeground(UIManager.ERROR_COLOR);
 
         // Add main panel to frame
         setContentPane(mainPanel);
@@ -79,7 +108,7 @@ public class Login extends JFrame {
                     (isUser && selectedUserType.equals("Utente"))) {
 
                     statusLabel.setText("Login riuscito!");
-                    statusLabel.setForeground(new Color(50, 168, 82));
+                    statusLabel.setForeground(UIManager.SUCCESS_COLOR);
 
                     // Navigate to appropriate dashboard based on user type
                     if (isAdmin) {
@@ -91,14 +120,14 @@ public class Login extends JFrame {
                     return;
                 } else {
                     statusLabel.setText("Tipo utente non corretto");
-                    statusLabel.setForeground(Color.RED);
+                    statusLabel.setForeground(UIManager.ERROR_COLOR);
                     return;
                 }
             }
         }
 
         statusLabel.setText("Username o password non validi");
-        statusLabel.setForeground(Color.RED);
+        statusLabel.setForeground(UIManager.ERROR_COLOR);
     }
 
     private void openAdminDashboard(Amministratore admin) {

@@ -40,15 +40,20 @@ public class AdminDashboard extends JFrame {
 
         // Set up the frame
         setTitle("Dashboard Amministratore - Aeroporto di Napoli");
-        setSize(800, 600);
+        setSize(1000, 700);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 
+        // Apply theme to frame
+        UIManager.styleFrame(this);
+
         // Create main panel with BorderLayout
         mainPanel = new JPanel(new BorderLayout());
+        mainPanel.setBackground(UIManager.BACKGROUND_COLOR);
 
         // Create tabbed pane
         tabbedPane = new JTabbedPane();
+        UIManager.styleTabbedPane(tabbedPane);
 
         // Create and add panels for each tab
         createFlightsPanel();
@@ -65,8 +70,9 @@ public class AdminDashboard extends JFrame {
         // Add welcome label at the top
         JLabel welcomeLabel = new JLabel("Benvenuto, " + admin.getNome() + " " + admin.getCognome() + "!");
         welcomeLabel.setHorizontalAlignment(JLabel.CENTER);
-        welcomeLabel.setFont(new Font("Arial", Font.BOLD, 16));
-        welcomeLabel.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 0));
+        welcomeLabel.setFont(UIManager.TITLE_FONT);
+        welcomeLabel.setForeground(UIManager.PRIMARY_COLOR);
+        welcomeLabel.setBorder(BorderFactory.createEmptyBorder(15, 0, 15, 0));
         mainPanel.add(welcomeLabel, BorderLayout.NORTH);
 
         // Set main panel as content pane
@@ -95,16 +101,33 @@ public class AdminDashboard extends JFrame {
 
     private void createFlightsPanel() {
         flightsPanel = new JPanel(new BorderLayout());
+        flightsPanel.setBackground(UIManager.BACKGROUND_COLOR);
 
         // Create search panel
-        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        searchPanel.setBorder(BorderFactory.createTitledBorder("Ricerca Voli"));
+        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
+        searchPanel.setBackground(UIManager.BACKGROUND_COLOR);
+        searchPanel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createTitledBorder(
+                BorderFactory.createLineBorder(UIManager.SECONDARY_COLOR, 1),
+                "Ricerca Voli",
+                0,
+                0,
+                UIManager.HEADER_FONT,
+                UIManager.PRIMARY_COLOR
+            ),
+            BorderFactory.createEmptyBorder(10, 10, 10, 10)
+        ));
 
         JComboBox<String> searchTypeComboBox = new JComboBox<>(new String[] {
             "Tutti", "Codice Volo", "Compagnia", "Destinazione", "Origine", "Orario", "Stato", "Data", "Ritardo"
         });
+        UIManager.styleComboBox(searchTypeComboBox);
+
         JTextField searchField = new JTextField(20);
+        UIManager.styleTextField(searchField);
+
         JButton searchButton = new JButton("Cerca");
+        UIManager.styleButton(searchButton);
 
         searchButton.addActionListener(new ActionListener() {
             @Override
@@ -113,7 +136,11 @@ public class AdminDashboard extends JFrame {
             }
         });
 
-        searchPanel.add(new JLabel("Cerca per:"));
+        JLabel searchLabel = new JLabel("Cerca per:");
+        searchLabel.setFont(UIManager.NORMAL_FONT);
+        searchLabel.setForeground(UIManager.TEXT_COLOR);
+
+        searchPanel.add(searchLabel);
         searchPanel.add(searchTypeComboBox);
         searchPanel.add(searchField);
         searchPanel.add(searchButton);
@@ -153,6 +180,9 @@ public class AdminDashboard extends JFrame {
         // Create table with model
         flightsTable = new JTable(model);
 
+        // Apply table styling
+        UIManager.styleTable(flightsTable);
+
         // Set custom renderer for status column
         flightsTable.getColumnModel().getColumn(5).setCellRenderer(new DefaultTableCellRenderer() {
             @Override
@@ -162,17 +192,21 @@ public class AdminDashboard extends JFrame {
                 if (value != null) {
                     StatoVolo stato = (StatoVolo) value;
                     if (stato == StatoVolo.inRitardo) {
-                        c.setBackground(Color.RED);
+                        c.setBackground(UIManager.ERROR_COLOR);
                         c.setForeground(Color.WHITE);
                     } else if (stato == StatoVolo.cancellato) {
-                        c.setBackground(Color.YELLOW);
+                        c.setBackground(UIManager.WARNING_COLOR);
                         c.setForeground(Color.BLACK);
+                    } else if (stato == StatoVolo.atterrato || stato == StatoVolo.decollato) {
+                        c.setBackground(UIManager.SUCCESS_COLOR);
+                        c.setForeground(Color.WHITE);
                     } else {
                         c.setBackground(isSelected ? table.getSelectionBackground() : table.getBackground());
-                        c.setForeground(isSelected ? table.getSelectionForeground() : table.getForeground());
+                        c.setForeground(isSelected ? table.getSelectionForeground() : UIManager.TEXT_COLOR);
                     }
                 }
 
+                ((JLabel)c).setHorizontalAlignment(JLabel.CENTER);
                 return c;
             }
         });
@@ -192,10 +226,13 @@ public class AdminDashboard extends JFrame {
 
         // Add table to scroll pane
         JScrollPane scrollPane = new JScrollPane(flightsTable);
+        scrollPane.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        scrollPane.getViewport().setBackground(UIManager.BACKGROUND_COLOR);
         flightsPanel.add(scrollPane, BorderLayout.CENTER);
 
         // Add refresh button
         JButton refreshButton = new JButton("Aggiorna");
+        UIManager.styleButton(refreshButton);
         refreshButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -203,7 +240,8 @@ public class AdminDashboard extends JFrame {
             }
         });
 
-        JPanel buttonPanel = new JPanel();
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
+        buttonPanel.setBackground(UIManager.BACKGROUND_COLOR);
         buttonPanel.add(refreshButton);
         flightsPanel.add(buttonPanel, BorderLayout.SOUTH);
 
@@ -477,6 +515,9 @@ public class AdminDashboard extends JFrame {
         // Add buttons
         JPanel buttonPanel = new JPanel();
         JButton updateButton = new JButton("Aggiorna Volo");
+        // Make the button smaller and more suitable for the screen
+        updateButton.setPreferredSize(new Dimension(150, 30));
+        updateButton.setFont(new Font("Arial", Font.PLAIN, 12));
 
         // Add action listener to flight combo box to populate form fields
         flightComboBox.addActionListener(new ActionListener() {
@@ -657,11 +698,20 @@ public class AdminDashboard extends JFrame {
         formPanel.add(new JLabel("Gate:"));
         formPanel.add(gateComboBox);
 
-        // Add form panel to center
-        gateAssignmentPanel.add(formPanel, BorderLayout.CENTER);
+        // Create a panel with BoxLayout for better control of vertical spacing
+        JPanel centerPanel = new JPanel();
+        centerPanel.setLayout(new BoxLayout(centerPanel, BoxLayout.Y_AXIS));
+        centerPanel.add(formPanel);
+
+        // Add vertical spacing
+        centerPanel.add(Box.createVerticalStrut(100)); // Add 100px of vertical space
+
+        // Add the center panel to the main panel
+        gateAssignmentPanel.add(centerPanel, BorderLayout.CENTER);
 
         // Add buttons
         JPanel buttonPanel = new JPanel();
+        buttonPanel.setBorder(BorderFactory.createEmptyBorder(20, 0, 20, 0)); // Add padding around buttons
         JButton assignButton = new JButton("Assegna Gate");
 
         assignButton.addActionListener(new ActionListener() {
@@ -703,6 +753,8 @@ public class AdminDashboard extends JFrame {
         // Add form fields
         JTextField baggageCodeField = new JTextField();
         JComboBox<StatoBagaglio> statusComboBox = new JComboBox<>(StatoBagaglio.values());
+        // Make the status selector smaller, with at most 20px extra padding compared to text
+        statusComboBox.setPreferredSize(new Dimension(150, 25));
         JCheckBox lostCheckBox = new JCheckBox("Segnala come smarrito");
 
         formPanel.add(new JLabel("Codice Bagaglio:"));
@@ -775,6 +827,8 @@ public class AdminDashboard extends JFrame {
 
         JLabel selectLabel = new JLabel("Seleziona Bagaglio:");
         JComboBox<String> baggageComboBox = new JComboBox<>();
+        // Make the baggage selector smaller, similar to the status selector
+        baggageComboBox.setPreferredSize(new Dimension(150, 25));
 
         // Populate baggage combo box
         for (Bagaglio bagaglio : baggages) {
@@ -792,16 +846,30 @@ public class AdminDashboard extends JFrame {
 
         // Add form fields (excluding code field since it's selected from dropdown)
         JComboBox<StatoBagaglio> statusComboBox = new JComboBox<>(StatoBagaglio.values());
+        // Make the status selector smaller, with at most 20px extra padding compared to text fields
+        statusComboBox.setPreferredSize(new Dimension(150, 25));
 
         formPanel.add(new JLabel("Stato:"));
         formPanel.add(statusComboBox);
 
-        // Add form panel to center
-        updateBaggagePanel.add(formPanel, BorderLayout.CENTER);
+        // Create a panel with BoxLayout for better control of vertical spacing
+        JPanel centerPanel = new JPanel();
+        centerPanel.setLayout(new BoxLayout(centerPanel, BoxLayout.Y_AXIS));
+        centerPanel.add(formPanel);
+
+        // Add vertical spacing
+        centerPanel.add(Box.createVerticalStrut(100)); // Add 100px of vertical space
+
+        // Add the center panel to the main panel
+        updateBaggagePanel.add(centerPanel, BorderLayout.CENTER);
 
         // Add buttons
         JPanel buttonPanel = new JPanel();
+        buttonPanel.setBorder(BorderFactory.createEmptyBorder(20, 0, 20, 0)); // Add padding around buttons
         JButton updateButton = new JButton("Aggiorna Bagaglio");
+        // Make the button smaller and more suitable for the screen
+        updateButton.setPreferredSize(new Dimension(150, 30));
+        updateButton.setFont(new Font("Arial", Font.PLAIN, 12));
 
         // Add action listener to baggage combo box to populate form fields
         baggageComboBox.addActionListener(new ActionListener() {
@@ -986,6 +1054,8 @@ public class AdminDashboard extends JFrame {
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
         JComboBox<StatoBagaglio> statusComboBox = new JComboBox<>(StatoBagaglio.values());
+        // Make the status selector smaller, with at most 20px extra padding compared to text
+        statusComboBox.setPreferredSize(new Dimension(150, 25));
 
         // Find the baggage and set the current status
         for (Bagaglio bagaglio : baggages) {
