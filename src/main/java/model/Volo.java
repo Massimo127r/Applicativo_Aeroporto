@@ -12,10 +12,13 @@ public class Volo {
     private StatoVolo stato;
     private LocalDate data;
     private int tempoRitardo;
+    private int postiTotali;
+    private int postiDisponibili;
 
 
     public Volo(String codiceVolo, String compagnia, String origine, String destinazione,
-                String orarioPrevisto, StatoVolo stato, LocalDate data, int tempoRitardo) {
+                String orarioPrevisto, StatoVolo stato, LocalDate data, int tempoRitardo,
+                int postiTotali, int postiDisponibili) {
         this.codiceVolo = codiceVolo;
         this.compagnia = compagnia;
         this.origine = origine;
@@ -24,6 +27,14 @@ public class Volo {
         this.stato = stato;
         this.data = data;
         this.tempoRitardo = tempoRitardo;
+        this.postiTotali = postiTotali;
+        this.postiDisponibili = postiDisponibili;
+    }
+
+    // Overloaded constructor for backward compatibility
+    public Volo(String codiceVolo, String compagnia, String origine, String destinazione,
+                String orarioPrevisto, StatoVolo stato, LocalDate data, int tempoRitardo) {
+        this(codiceVolo, compagnia, origine, destinazione, orarioPrevisto, stato, data, tempoRitardo, 0, 0);
     }
 
     public String getCodiceVolo() { return codiceVolo; }
@@ -49,4 +60,10 @@ public class Volo {
 
     public int getTempoRitardo() { return tempoRitardo; }
     public void setTempoRitardo(int tempoRitardo) { this.tempoRitardo = tempoRitardo; }
+
+    public int getPostiTotali() { return postiTotali; }
+    public void setPostiTotali(int postiTotali) { this.postiTotali = postiTotali; }
+
+    public int getPostiDisponibili() { return postiDisponibili; }
+    public void setPostiDisponibili(int postiDisponibili) { this.postiDisponibili = postiDisponibili; }
 }

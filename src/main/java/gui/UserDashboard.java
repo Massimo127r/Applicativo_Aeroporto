@@ -49,12 +49,19 @@ public class UserDashboard extends JFrame {
     private List<Volo> flights;
     private List<Prenotazione> bookings;
     private List<Bagaglio> baggages;
-    private Generico user;
+    private Utente user;
+    private controller.Controller controller;
 
-    public UserDashboard(Generico user) {
+    public UserDashboard(Utente user) {
+        if (!user.isGenerico()) {
+            throw new IllegalArgumentException("L'utente deve avere il ruolo di utente generico");
+        }
         this.user = user;
 
-        // Initialize test data
+        // Initialize controller
+        this.controller = new controller.Controller();
+
+        // Initialize data
         initializeTestData();
 
         // Set up the frame
@@ -96,12 +103,13 @@ public class UserDashboard extends JFrame {
     }
 
     private void initializeTestData() {
-        // Initialize flights
-        flights = new ArrayList<>();
-        flights.add(new Volo("AZ1234", "Alitalia", "Napoli", "Roma", "10:00", StatoVolo.programmato, LocalDate.now(), 0));
-        flights.add(new Volo("FR5678", "Ryanair", "Napoli", "Milano", "12:30", StatoVolo.inRitardo, LocalDate.now(), 30));
-        flights.add(new Volo("BA9012", "British Airways", "Londra", "Napoli", "15:45", StatoVolo.atterrato, LocalDate.now(), 0));
-        flights.add(new Volo("LH1357", "Lufthansa", "Napoli", "Francoforte", "18:15", StatoVolo.cancellato, LocalDate.now(), 0));
+        // Retrieve flights from database
+        flights = controller.getAllVoli();
+
+        // If no flights in database, create an empty list
+        if (flights == null) {
+            flights = new ArrayList<>();
+        }
 
         // Initialize bookings
         bookings = new ArrayList<>();
@@ -288,6 +296,12 @@ public class UserDashboard extends JFrame {
     }
 
     private void refreshFlightsTable() {
+        // Retrieve updated flights from database
+        flights = controller.getAllVoli();
+        if (flights == null) {
+            flights = new ArrayList<>();
+        }
+
         DefaultTableModel model = (DefaultTableModel) flightsTable.getModel();
         model.setRowCount(0);
 

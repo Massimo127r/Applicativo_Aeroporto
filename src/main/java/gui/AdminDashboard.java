@@ -25,17 +25,24 @@ public class AdminDashboard extends JFrame {
     private JPanel updateBaggagePanel;
     private JPanel lostBaggagePanel;
 
-    // Temporary data for testing
+    // Data
     private List<Volo> flights;
     private List<Gate> gates;
     private List<Bagaglio> baggages;
 
-    private Amministratore admin;
+    private Utente admin;
+    private controller.Controller controller;
 
-    public AdminDashboard(Amministratore admin) {
+    public AdminDashboard(Utente admin) {
+        if (!admin.isAmministratore()) {
+            throw new IllegalArgumentException("L'utente deve avere il ruolo di amministratore");
+        }
         this.admin = admin;
 
-        // Initialize test data
+        // Initialize controller
+        this.controller = new controller.Controller();
+
+        // Initialize data
         initializeTestData();
 
         // Set up the frame
@@ -80,23 +87,28 @@ public class AdminDashboard extends JFrame {
     }
 
     private void initializeTestData() {
-        // Initialize flights
-        flights = new ArrayList<>();
-        flights.add(new Volo("AZ1234", "Alitalia", "Napoli", "Roma", "10:00", StatoVolo.programmato, LocalDate.now(), 0));
-        flights.add(new Volo("FR5678", "Ryanair", "Napoli", "Milano", "12:30", StatoVolo.inRitardo, LocalDate.now(), 30));
-        flights.add(new Volo("BA9012", "British Airways", "Londra", "Napoli", "15:45", StatoVolo.atterrato, LocalDate.now(), 0));
+        // Retrieve flights from database
+        flights = controller.getAllVoli();
+
+        // If no flights in database, create an empty list
+        if (flights == null) {
+            flights = new ArrayList<>();
+        }
 
         // Initialize gates
-        gates = new ArrayList<>();
-        gates.add(new Gate(1));
-        gates.add(new Gate(2));
-        gates.add(new Gate(3));
+        gates = controller.getAllGates();
+        if (gates == null) {
+            gates = new ArrayList<>();
+            gates.add(new Gate(1));
+            gates.add(new Gate(2));
+            gates.add(new Gate(3));
+        }
 
         // Initialize baggages
-        baggages = new ArrayList<>();
-        baggages.add(new Bagaglio("BAG001", StatoBagaglio.caricato));
-        baggages.add(new Bagaglio("BAG002", StatoBagaglio.ritirabile));
-        baggages.add(new Bagaglio("BAG003", StatoBagaglio.caricato));
+        baggages = controller.getAllBagagli();
+        if (baggages == null) {
+            baggages = new ArrayList<>();
+        }
     }
 
     private void createFlightsPanel() {
@@ -119,7 +131,7 @@ public class AdminDashboard extends JFrame {
         ));
 
         JComboBox<String> searchTypeComboBox = new JComboBox<>(new String[] {
-            "Tutti", "Codice Volo", "Compagnia", "Destinazione", "Origine", "Orario", "Stato", "Data", "Ritardo"
+            "Tutti", "Codice Volo", "Compagnia", "Destinazione", "Origine", "Orario", "Stato", "Data", "Ritardo", "Posti Totali", "Posti Disponibili"
         });
         UIManager.styleComboBox(searchTypeComboBox);
 
@@ -162,6 +174,8 @@ public class AdminDashboard extends JFrame {
         model.addColumn("Stato");
         model.addColumn("Data");
         model.addColumn("Ritardo (min)");
+        model.addColumn("Posti Totali");
+        model.addColumn("Posti Disponibili");
 
         // Add data to table model
         for (Volo volo : flights) {
@@ -173,7 +187,9 @@ public class AdminDashboard extends JFrame {
                 volo.getOrarioPrevisto(),
                 volo.getStato(),
                 volo.getData(),
-                volo.getTempoRitardo()
+                volo.getTempoRitardo(),
+                volo.getPostiTotali(),
+                volo.getPostiDisponibili()
             });
         }
 
@@ -250,6 +266,12 @@ public class AdminDashboard extends JFrame {
     }
 
     private void refreshFlightsTable() {
+        // Retrieve updated flights from database
+        flights = controller.getAllVoli();
+        if (flights == null) {
+            flights = new ArrayList<>();
+        }
+
         DefaultTableModel model = (DefaultTableModel) flightsTable.getModel();
         model.setRowCount(0);
 
@@ -262,7 +284,9 @@ public class AdminDashboard extends JFrame {
                 volo.getOrarioPrevisto(),
                 volo.getStato(),
                 volo.getData(),
-                volo.getTempoRitardo()
+                volo.getTempoRitardo(),
+                volo.getPostiTotali(),
+                volo.getPostiDisponibili()
             });
         }
     }
@@ -294,6 +318,10 @@ public class AdminDashboard extends JFrame {
                 match = true;
             } else if (searchType.equals("Ritardo") && String.valueOf(volo.getTempoRitardo()).contains(searchText)) {
                 match = true;
+            } else if (searchType.equals("Posti Totali") && String.valueOf(volo.getPostiTotali()).contains(searchText)) {
+                match = true;
+            } else if (searchType.equals("Posti Disponibili") && String.valueOf(volo.getPostiDisponibili()).contains(searchText)) {
+                match = true;
             }
 
             if (match) {
@@ -305,7 +333,9 @@ public class AdminDashboard extends JFrame {
                     volo.getOrarioPrevisto(),
                     volo.getStato(),
                     volo.getData(),
-                    volo.getTempoRitardo()
+                    volo.getTempoRitardo(),
+                    volo.getPostiTotali(),
+                    volo.getPostiDisponibili()
                 });
             }
         }
@@ -315,7 +345,7 @@ public class AdminDashboard extends JFrame {
         addFlightPanel = new JPanel(new BorderLayout());
 
         // Create form panel
-        JPanel formPanel = new JPanel(new GridLayout(9, 2, 10, 10));
+        JPanel formPanel = new JPanel(new GridLayout(10, 2, 10, 10));
         formPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
         // Add form fields
@@ -327,6 +357,7 @@ public class AdminDashboard extends JFrame {
         JComboBox<StatoVolo> statusComboBox = new JComboBox<>(StatoVolo.values());
         JTextField dateField = new JTextField(LocalDate.now().toString());
         JTextField delayField = new JTextField("0");
+        JTextField totalSeatsField = new JTextField("0");
         JTextField seatsField = new JTextField("0");
 
         // Set up flight type combo box to control origin/destination fields
@@ -367,6 +398,8 @@ public class AdminDashboard extends JFrame {
         formPanel.add(dateField);
         formPanel.add(new JLabel("Ritardo (min):"));
         formPanel.add(delayField);
+        formPanel.add(new JLabel("Posti Totali:"));
+        formPanel.add(totalSeatsField);
         formPanel.add(new JLabel("Posti Disponibili:"));
         formPanel.add(seatsField);
 
@@ -390,11 +423,13 @@ public class AdminDashboard extends JFrame {
                     StatoVolo status = (StatoVolo) statusComboBox.getSelectedItem();
                     LocalDate date = LocalDate.parse(dateField.getText());
                     int delay = Integer.parseInt(delayField.getText());
-                    int seats = Integer.parseInt(seatsField.getText());
+                    int totalSeats = Integer.parseInt(totalSeatsField.getText());
+                    int availableSeats = Integer.parseInt(seatsField.getText());
 
-                    if (airline.isEmpty() || origin.isEmpty() || destination.isEmpty() || time.isEmpty() || seats <= 0) {
+                    if (airline.isEmpty() || origin.isEmpty() || destination.isEmpty() || time.isEmpty() || 
+                        totalSeats <= 0 || availableSeats <= 0 || availableSeats > totalSeats) {
                         JOptionPane.showMessageDialog(AdminDashboard.this,
-                            "Tutti i campi sono obbligatori e i posti disponibili devono essere maggiori di zero",
+                            "Tutti i campi sono obbligatori. I posti totali e disponibili devono essere maggiori di zero, e i posti disponibili non possono superare i posti totali.",
                             "Errore", JOptionPane.ERROR_MESSAGE);
                         return;
                     }
@@ -410,14 +445,24 @@ public class AdminDashboard extends JFrame {
                     // Generate a unique flight code
                     String code = generateFlightCode(airline);
 
-                    // Add new flight
-                    Volo newFlight = new Volo(code, airline, origin, destination, time, status, date, delay);
-                    // In a real application, we would also store the number of seats
-                    flights.add(newFlight);
+                    // Create new flight
+                    Volo newFlight = new Volo(code, airline, origin, destination, time, status, date, delay, totalSeats, availableSeats);
 
-                    JOptionPane.showMessageDialog(AdminDashboard.this,
-                        "Volo aggiunto con successo\nCodice Volo: " + code,
-                        "Successo", JOptionPane.INFORMATION_MESSAGE);
+                    // Save to database
+                    boolean success = controller.inserisciVolo(code, airline, origin, destination, time, status, date, delay);
+
+                    if (success) {
+                        // Refresh flights from database
+                        refreshFlightsTable();
+
+                        JOptionPane.showMessageDialog(AdminDashboard.this,
+                            "Volo aggiunto con successo\nCodice Volo: " + code,
+                            "Successo", JOptionPane.INFORMATION_MESSAGE);
+                    } else {
+                        JOptionPane.showMessageDialog(AdminDashboard.this,
+                            "Errore durante l'inserimento del volo nel database",
+                            "Errore", JOptionPane.ERROR_MESSAGE);
+                    }
 
                     // Clear form
                     airlineField.setText("");
@@ -426,10 +471,8 @@ public class AdminDashboard extends JFrame {
                     statusComboBox.setSelectedIndex(0);
                     dateField.setText(LocalDate.now().toString());
                     delayField.setText("0");
+                    totalSeatsField.setText("0");
                     seatsField.setText("0");
-
-                    // Refresh flights table
-                    refreshFlightsTable();
 
                 } catch (Exception ex) {
                     JOptionPane.showMessageDialog(AdminDashboard.this,
@@ -448,6 +491,7 @@ public class AdminDashboard extends JFrame {
                 statusComboBox.setSelectedIndex(0);
                 dateField.setText(LocalDate.now().toString());
                 delayField.setText("0");
+                totalSeatsField.setText("0");
                 seatsField.setText("0");
             }
         });
@@ -482,7 +526,7 @@ public class AdminDashboard extends JFrame {
         updateFlightPanel.add(selectionPanel, BorderLayout.NORTH);
 
         // Create form panel
-        JPanel formPanel = new JPanel(new GridLayout(7, 2, 10, 10));
+        JPanel formPanel = new JPanel(new GridLayout(9, 2, 10, 10));
         formPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
         // Add form fields (excluding code field since it's selected from dropdown)
@@ -493,6 +537,8 @@ public class AdminDashboard extends JFrame {
         JComboBox<StatoVolo> statusComboBox = new JComboBox<>(StatoVolo.values());
         JTextField dateField = new JTextField();
         JTextField delayField = new JTextField();
+        JTextField totalSeatsField = new JTextField();
+        JTextField availableSeatsField = new JTextField();
 
         formPanel.add(new JLabel("Compagnia:"));
         formPanel.add(airlineField);
@@ -508,6 +554,10 @@ public class AdminDashboard extends JFrame {
         formPanel.add(dateField);
         formPanel.add(new JLabel("Ritardo (min):"));
         formPanel.add(delayField);
+        formPanel.add(new JLabel("Posti Totali:"));
+        formPanel.add(totalSeatsField);
+        formPanel.add(new JLabel("Posti Disponibili:"));
+        formPanel.add(availableSeatsField);
 
         // Add form panel to center
         updateFlightPanel.add(formPanel, BorderLayout.CENTER);
@@ -533,6 +583,8 @@ public class AdminDashboard extends JFrame {
                     statusComboBox.setSelectedItem(selectedFlight.getStato());
                     dateField.setText(selectedFlight.getData().toString());
                     delayField.setText(String.valueOf(selectedFlight.getTempoRitardo()));
+                    totalSeatsField.setText(String.valueOf(selectedFlight.getPostiTotali()));
+                    availableSeatsField.setText(String.valueOf(selectedFlight.getPostiDisponibili()));
                 }
             }
         });
@@ -561,10 +613,13 @@ public class AdminDashboard extends JFrame {
                     StatoVolo status = (StatoVolo) statusComboBox.getSelectedItem();
                     LocalDate date = LocalDate.parse(dateField.getText());
                     int delay = Integer.parseInt(delayField.getText());
+                    int totalSeats = Integer.parseInt(totalSeatsField.getText());
+                    int availableSeats = Integer.parseInt(availableSeatsField.getText());
 
-                    if (airline.isEmpty() || origin.isEmpty() || destination.isEmpty() || time.isEmpty()) {
+                    if (airline.isEmpty() || origin.isEmpty() || destination.isEmpty() || time.isEmpty() || 
+                        totalSeats <= 0 || availableSeats <= 0 || availableSeats > totalSeats) {
                         JOptionPane.showMessageDialog(AdminDashboard.this,
-                            "Tutti i campi sono obbligatori",
+                            "Tutti i campi sono obbligatori. I posti totali e disponibili devono essere maggiori di zero, e i posti disponibili non possono superare i posti totali.",
                             "Errore", JOptionPane.ERROR_MESSAGE);
                         return;
                     }
@@ -1135,10 +1190,15 @@ public class AdminDashboard extends JFrame {
         infoPanel.add(new JLabel("Ritardo:"));
         infoPanel.add(new JLabel(flight.getTempoRitardo() + " min"));
 
-        // In a real application, we would get the seat capacity from the flight
-        int totalSeats = 100; // Example value
-        int occupiedSeats = 20; // Example value
+        // Get the seat capacity from the flight
+        int totalSeats = flight.getPostiTotali();
+        int availableSeats = flight.getPostiDisponibili();
+        int occupiedSeats = totalSeats - availableSeats;
 
+        infoPanel.add(new JLabel("Posti Totali:"));
+        infoPanel.add(new JLabel(String.valueOf(totalSeats)));
+        infoPanel.add(new JLabel("Posti Disponibili:"));
+        infoPanel.add(new JLabel(String.valueOf(availableSeats)));
         infoPanel.add(new JLabel("Posti Occupati:"));
         infoPanel.add(new JLabel(occupiedSeats + " / " + totalSeats));
 

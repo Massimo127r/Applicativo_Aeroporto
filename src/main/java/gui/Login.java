@@ -1,15 +1,12 @@
 package gui;
 
-import model.Amministratore;
-import model.Generico;
+import controller.Controller;
 import model.Utente;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.ArrayList;
-import java.util.List;
 
 public class Login extends JFrame {
     private JPanel mainPanel;
@@ -20,12 +17,11 @@ public class Login extends JFrame {
     private JLabel statusLabel;
     private JComboBox<String> userTypeComboBox;
 
-    // Temporary user database for testing
-    private List<Utente> users;
+    // Controller per l'interazione con il database
+    private Controller controller;
 
-    public Login() {
-        // Initialize user database with some test users
-        initializeUsers();
+    public Login(Controller controller) {
+        this.controller = controller;
 
         // Set up the frame
         setTitle("Aeroporto di Napoli - Login");
@@ -82,12 +78,6 @@ public class Login extends JFrame {
         setContentPane(mainPanel);
     }
 
-    private void initializeUsers() {
-        users = new ArrayList<>();
-        users.add(new Amministratore("admin", "admin123", "Admin", "User"));
-        users.add(new Generico("user", "user123", "Regular", "User"));
-    }
-
     private void attemptLogin() {
         String username = usernameField.getText();
         String password = new String(passwordField.getPassword());
@@ -98,46 +88,35 @@ public class Login extends JFrame {
             return;
         }
 
-        for (Utente user : users) {
-            if (user.getNomeUtente().equals(username) && user.getPassword().equals(password)) {
-                // Check if user type matches the selected type
-                boolean isAdmin = user instanceof Amministratore;
-                boolean isUser = user instanceof Generico;
+        // Usa il controller per autenticare l'utente verificando anche il ruolo
+        Utente user = controller.login(username, password, selectedUserType);
 
-                if ((isAdmin && selectedUserType.equals("Amministratore")) ||
-                    (isUser && selectedUserType.equals("Utente"))) {
+        if (user != null) {
+            statusLabel.setText("Login riuscito!");
+            statusLabel.setForeground(UIManager.SUCCESS_COLOR);
 
-                    statusLabel.setText("Login riuscito!");
-                    statusLabel.setForeground(UIManager.SUCCESS_COLOR);
-
-                    // Navigate to appropriate dashboard based on user type
-                    if (isAdmin) {
-                        openAdminDashboard((Amministratore) user);
-                    } else if (isUser) {
-                        openUserDashboard((Generico) user);
-                    }
-
-                    return;
-                } else {
-                    statusLabel.setText("Tipo utente non corretto");
-                    statusLabel.setForeground(UIManager.ERROR_COLOR);
-                    return;
-                }
+            // Navigate to appropriate dashboard based on user role
+            if (user.isAmministratore()) {
+                openAdminDashboard(user);
+            } else if (user.isGenerico()) {
+                openUserDashboard(user);
             }
+
+            return;
         }
 
-        statusLabel.setText("Username o password non validi");
+        statusLabel.setText("Username, password o tipo utente non validi");
         statusLabel.setForeground(UIManager.ERROR_COLOR);
     }
 
-    private void openAdminDashboard(Amministratore admin) {
+    private void openAdminDashboard(Utente admin) {
         // Create and show admin dashboard
         AdminDashboard dashboard = new AdminDashboard(admin);
         dashboard.setVisible(true);
         this.dispose(); // Close login window
     }
 
-    private void openUserDashboard(Generico user) {
+    private void openUserDashboard(Utente user) {
         // Create and show user dashboard
         UserDashboard dashboard = new UserDashboard(user);
         dashboard.setVisible(true);

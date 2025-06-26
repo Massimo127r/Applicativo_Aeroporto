@@ -1,14 +1,17 @@
 package model;
 
-// Generico.java
+/**
+ * @deprecated Questa classe è stata deprecata. 
+ * La funzionalità è stata spostata nella classe Utente con un approccio basato su ruoli.
+ * Utilizzare la classe Utente con il ruolo "generico" invece.
+ */
+@Deprecated
 public class Generico extends Utente {
-    public Generico(String nomeUtente, String password, String nome, String cognome) {
-        super(nomeUtente, password, nome, cognome);
+    /**
+     * @deprecated Utilizzare il costruttore Utente con il parametro ruolo="generico" invece.
+     */
+    @Deprecated
+    public Generico(String login, String password, String nome, String cognome) {
+        super(login, password, nome, cognome, "generico");
     }
-
-    // Logica dei metodi da implementare
-    public void prenota() {}
-    public void cercaPrenotazione(String codiceVolo) {}
-    public void cercaPrenotazione(String nomePasseggero, String cognomePasseggero) {}
-    public void segnalaSmarrimento() {}
 }

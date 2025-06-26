@@ -1,8 +1,14 @@
 package Database;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.stream.Collectors;
 
 /**
  * Classe per la gestione della connessione al database PostgreSQL.
@@ -52,6 +58,30 @@ public class ConnessioneDatabase {
                 System.err.println("Errore durante la chiusura della connessione: " + e.getMessage());
             } finally {
                 connection = null;
+            }
+        }
+    }
+
+    /**
+     * Esegue lo script SQL per creare il tipo enum statovolo.
+     * @throws SQLException se si verifica un errore durante l'esecuzione dello script
+     * @throws IOException se si verifica un errore durante la lettura del file
+     */
+    public static void createStatoVoloEnum() throws SQLException, IOException {
+        try (Connection conn = getConnection()) {
+            // Leggi il contenuto del file SQL
+            InputStream inputStream = ConnessioneDatabase.class.getClassLoader().getResourceAsStream("sql/create_statovolo_enum.sql");
+            if (inputStream == null) {
+                throw new IOException("File SQL non trovato: sql/create_statovolo_enum.sql");
+            }
+
+            String sqlScript = new BufferedReader(new InputStreamReader(inputStream))
+                    .lines().collect(Collectors.joining("\n"));
+
+            // Esegui lo script SQL
+            try (Statement stmt = conn.createStatement()) {
+                stmt.execute(sqlScript);
+                System.out.println("Tipo enum statovolo creato con successo");
             }
         }
     }
