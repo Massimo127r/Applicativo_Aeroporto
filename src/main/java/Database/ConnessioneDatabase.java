@@ -17,7 +17,7 @@ public class ConnessioneDatabase {
     // Parametri di connessione al database
     private static final String DB_URL = "jdbc:postgresql://localhost:5432/DB";
     private static final String DB_USER = "postgres";
-    private static final String DB_PASSWORD = "Grafica2004#";
+    private static final String DB_PASSWORD = "Massimorusso127";
 
     private static Connection connection = null;
 
@@ -66,7 +66,7 @@ public class ConnessioneDatabase {
      * Esegue lo script SQL per creare il tipo enum statovolo.
      * @throws SQLException se si verifica un errore durante l'esecuzione dello script
      * @throws IOException se si verifica un errore durante la lettura del file
-     */
+
     public static void createStatoVoloEnum() throws SQLException, IOException {
         try (Connection conn = getConnection()) {
             // Leggi il contenuto del file SQL
@@ -84,5 +84,5 @@ public class ConnessioneDatabase {
                 System.out.println("Tipo enum statovolo creato con successo");
             }
         }
-    }
+    }*/
 }

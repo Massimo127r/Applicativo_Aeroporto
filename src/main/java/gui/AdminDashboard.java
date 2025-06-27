@@ -67,7 +67,6 @@ public class AdminDashboard extends JFrame {
         createAddFlightPanel();
         createUpdateFlightPanel();
         createGateAssignmentPanel();
-        // createBaggageStatusPanel(); // Removed as per requirement: admin should not insert baggage
         createUpdateBaggagePanel();
         createLostBaggagePanel();
 
@@ -89,7 +88,6 @@ public class AdminDashboard extends JFrame {
     private void initializeTestData() {
         // Retrieve flights from database
         flights = controller.getAllVoli();
-
         // If no flights in database, create an empty list
         if (flights == null) {
             flights = new ArrayList<>();
@@ -99,9 +97,6 @@ public class AdminDashboard extends JFrame {
         gates = controller.getAllGates();
         if (gates == null) {
             gates = new ArrayList<>();
-            gates.add(new Gate(1));
-            gates.add(new Gate(2));
-            gates.add(new Gate(3));
         }
 
         // Initialize baggages
@@ -131,7 +126,7 @@ public class AdminDashboard extends JFrame {
         ));
 
         JComboBox<String> searchTypeComboBox = new JComboBox<>(new String[] {
-            "Tutti", "Codice Volo", "Compagnia", "Destinazione", "Origine", "Orario", "Stato", "Data", "Ritardo", "Posti Totali", "Posti Disponibili"
+            "Codice Volo", "Compagnia", "Destinazione", "Origine", "Orario", "Stato", "Data"
         });
         UIManager.styleComboBox(searchTypeComboBox);
 
@@ -170,6 +165,8 @@ public class AdminDashboard extends JFrame {
         model.addColumn("Compagnia");
         model.addColumn("Origine");
         model.addColumn("Destinazione");
+        model.addColumn("Gate");
+
         model.addColumn("Orario");
         model.addColumn("Stato");
         model.addColumn("Data");
@@ -184,12 +181,16 @@ public class AdminDashboard extends JFrame {
                 volo.getCompagnia(),
                 volo.getOrigine(),
                 volo.getDestinazione(),
+                    volo.getGate(),
+
                 volo.getOrarioPrevisto(),
                 volo.getStato(),
                 volo.getData(),
                 volo.getTempoRitardo(),
                 volo.getPostiTotali(),
-                volo.getPostiDisponibili()
+
+                volo.getPostiDisponibili(),
+
             });
         }
 
@@ -200,7 +201,7 @@ public class AdminDashboard extends JFrame {
         UIManager.styleTable(flightsTable);
 
         // Set custom renderer for status column
-        flightsTable.getColumnModel().getColumn(5).setCellRenderer(new DefaultTableCellRenderer() {
+        flightsTable.getColumnModel().getColumn(6).setCellRenderer(new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
                 Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
@@ -208,10 +209,10 @@ public class AdminDashboard extends JFrame {
                 if (value != null) {
                     StatoVolo stato = (StatoVolo) value;
                     if (stato == StatoVolo.inRitardo) {
-                        c.setBackground(UIManager.ERROR_COLOR);
+                        c.setBackground(UIManager.WARNING_COLOR);
                         c.setForeground(Color.WHITE);
                     } else if (stato == StatoVolo.cancellato) {
-                        c.setBackground(UIManager.WARNING_COLOR);
+                        c.setBackground(UIManager.ERROR_COLOR);
                         c.setForeground(Color.BLACK);
                     } else if (stato == StatoVolo.atterrato || stato == StatoVolo.decollato) {
                         c.setBackground(UIManager.SUCCESS_COLOR);
@@ -247,18 +248,10 @@ public class AdminDashboard extends JFrame {
         flightsPanel.add(scrollPane, BorderLayout.CENTER);
 
         // Add refresh button
-        JButton refreshButton = new JButton("Aggiorna");
-        UIManager.styleButton(refreshButton);
-        refreshButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                refreshFlightsTable();
-            }
-        });
+
 
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
         buttonPanel.setBackground(UIManager.BACKGROUND_COLOR);
-        buttonPanel.add(refreshButton);
         flightsPanel.add(buttonPanel, BorderLayout.SOUTH);
 
         // Add panel to tabbed pane
@@ -281,6 +274,8 @@ public class AdminDashboard extends JFrame {
                 volo.getCompagnia(),
                 volo.getOrigine(),
                 volo.getDestinazione(),
+                    volo.getGate(),
+
                 volo.getOrarioPrevisto(),
                 volo.getStato(),
                 volo.getData(),
@@ -300,7 +295,7 @@ public class AdminDashboard extends JFrame {
         for (Volo volo : flights) {
             boolean match = false;
 
-            if (searchType.equals("Tutti") || searchText.isEmpty()) {
+            if (searchText.isEmpty()) {
                 match = true;
             } else if (searchType.equals("Codice Volo") && volo.getCodiceVolo().toLowerCase().contains(searchText)) {
                 match = true;
@@ -316,12 +311,6 @@ public class AdminDashboard extends JFrame {
                 match = true;
             } else if (searchType.equals("Data") && volo.getData().toString().toLowerCase().contains(searchText)) {
                 match = true;
-            } else if (searchType.equals("Ritardo") && String.valueOf(volo.getTempoRitardo()).contains(searchText)) {
-                match = true;
-            } else if (searchType.equals("Posti Totali") && String.valueOf(volo.getPostiTotali()).contains(searchText)) {
-                match = true;
-            } else if (searchType.equals("Posti Disponibili") && String.valueOf(volo.getPostiDisponibili()).contains(searchText)) {
-                match = true;
             }
 
             if (match) {
@@ -330,6 +319,7 @@ public class AdminDashboard extends JFrame {
                     volo.getCompagnia(),
                     volo.getOrigine(),
                     volo.getDestinazione(),
+                        volo.getGate(),
                     volo.getOrarioPrevisto(),
                     volo.getStato(),
                     volo.getData(),
@@ -446,10 +436,10 @@ public class AdminDashboard extends JFrame {
                     String code = generateFlightCode(airline);
 
                     // Create new flight
-                    Volo newFlight = new Volo(code, airline, origin, destination, time, status, date, delay, totalSeats, availableSeats);
+                    Volo newFlight = new Volo(code, airline, origin, destination, time, status, date, delay, totalSeats, availableSeats, 0);
 
                     // Save to database
-                    boolean success = controller.inserisciVolo(code, airline, origin, destination, time, status, date, delay);
+                    boolean success = controller.inserisciVolo(code, airline, origin, destination, time, status, date, delay,  totalSeats, availableSeats);
 
                     if (success) {
                         // Refresh flights from database
@@ -688,6 +678,11 @@ public class AdminDashboard extends JFrame {
                     selectedFlight.setStato(status);
                     selectedFlight.setData(date);
                     selectedFlight.setTempoRitardo(delay);
+                    selectedFlight.setPostiDisponibili(availableSeats);
+                    selectedFlight.setPostiTotali(totalSeats);
+                     controller.modificaVolo(selectedFlight);
+
+
 
                     JOptionPane.showMessageDialog(AdminDashboard.this,
                         "Volo aggiornato con successo",
@@ -695,12 +690,19 @@ public class AdminDashboard extends JFrame {
 
                     // Refresh flights table and combo box
                     refreshFlightsTable();
-
+                    flightComboBox.removeAllItems();
+                    // Populate flight combo box
+                    for (Volo volo : flights) {
+                        flightComboBox.addItem(volo.getCodiceVolo() + " - " + volo.getCompagnia() + " (" +
+                                volo.getOrigine() + " -> " + volo.getDestinazione() + ")");
+                    }
                     // Update the combo box
+                   /*
                     flightComboBox.removeItemAt(selectedIndex);
                     flightComboBox.insertItemAt(selectedFlight.getCodiceVolo() + " - " + selectedFlight.getCompagnia() + " (" +
                                               selectedFlight.getOrigine() + " -> " + selectedFlight.getDestinazione() + ")", selectedIndex);
                     flightComboBox.setSelectedIndex(selectedIndex);
+                    */
 
                 } catch (Exception ex) {
                     JOptionPane.showMessageDialog(AdminDashboard.this,
@@ -778,10 +780,12 @@ public class AdminDashboard extends JFrame {
                 if (flightIndex >= 0 && gateIndex >= 0) {
                     if (flightIndex < departingFlights.size()) {
                         Volo selectedFlight = departingFlights.get(flightIndex);
+                        controller.assegnaGate(gates.get(gateIndex).getCodice(), selectedFlight.getCodiceVolo());
                         JOptionPane.showMessageDialog(AdminDashboard.this,
                             "Gate " + gates.get(gateIndex).getCodice() +
                             " assegnato al volo " + selectedFlight.getCodiceVolo(),
                             "Successo", JOptionPane.INFORMATION_MESSAGE);
+                        refreshFlightsTable();
                     }
                 } else {
                     JOptionPane.showMessageDialog(AdminDashboard.this,
@@ -798,80 +802,7 @@ public class AdminDashboard extends JFrame {
         tabbedPane.addTab("Assegna Gate", gateAssignmentPanel);
     }
 
-    private void createBaggageStatusPanel() {
-        baggageStatusPanel = new JPanel(new BorderLayout());
 
-        // Create form panel
-        JPanel formPanel = new JPanel(new GridLayout(3, 2, 10, 10));
-        formPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-
-        // Add form fields
-        JTextField baggageCodeField = new JTextField();
-        JComboBox<StatoBagaglio> statusComboBox = new JComboBox<>(StatoBagaglio.values());
-        // Make the status selector smaller, with at most 20px extra padding compared to text
-        statusComboBox.setPreferredSize(new Dimension(150, 25));
-        JCheckBox lostCheckBox = new JCheckBox("Segnala come smarrito");
-
-        formPanel.add(new JLabel("Codice Bagaglio:"));
-        formPanel.add(baggageCodeField);
-        formPanel.add(new JLabel("Stato:"));
-        formPanel.add(statusComboBox);
-        formPanel.add(new JLabel(""));
-        formPanel.add(lostCheckBox);
-
-        // Add form panel to center
-        baggageStatusPanel.add(formPanel, BorderLayout.CENTER);
-
-        // Add buttons
-        JPanel buttonPanel = new JPanel();
-        JButton addButton = new JButton("Aggiungi Bagaglio");
-
-        addButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                String code = baggageCodeField.getText();
-                StatoBagaglio status = (StatoBagaglio) statusComboBox.getSelectedItem();
-                boolean isLost = lostCheckBox.isSelected();
-
-                if (code.isEmpty()) {
-                    JOptionPane.showMessageDialog(AdminDashboard.this,
-                        "Inserisci il codice del bagaglio",
-                        "Errore", JOptionPane.ERROR_MESSAGE);
-                    return;
-                }
-
-                // Check if baggage already exists
-                for (Bagaglio bagaglio : baggages) {
-                    if (bagaglio.getCodice().equals(code)) {
-                        JOptionPane.showMessageDialog(AdminDashboard.this,
-                            "Un bagaglio con questo codice esiste già. Usa la scheda 'Aggiorna Bagaglio' per modificarlo.",
-                            "Errore", JOptionPane.ERROR_MESSAGE);
-                        return;
-                    }
-                }
-
-                // Add new baggage
-                Bagaglio newBaggage = new Bagaglio(code, status);
-                baggages.add(newBaggage);
-
-                JOptionPane.showMessageDialog(AdminDashboard.this,
-                    "Nuovo bagaglio aggiunto con successo" +
-                    (isLost ? " e segnalato come smarrito" : ""),
-                    "Successo", JOptionPane.INFORMATION_MESSAGE);
-
-                // Clear form
-                baggageCodeField.setText("");
-                statusComboBox.setSelectedIndex(0);
-                lostCheckBox.setSelected(false);
-            }
-        });
-
-        buttonPanel.add(addButton);
-        baggageStatusPanel.add(buttonPanel, BorderLayout.SOUTH);
-
-        // Add panel to tabbed pane
-        tabbedPane.addTab("Inserisci Bagaglio", baggageStatusPanel);
-    }
 
     private void createUpdateBaggagePanel() {
         updateBaggagePanel = new JPanel(new BorderLayout());
@@ -959,15 +890,21 @@ public class AdminDashboard extends JFrame {
                 // Update the selected baggage
                 Bagaglio selectedBaggage = baggages.get(selectedIndex);
                 selectedBaggage.setStato(status);
-
+    controller.aggiornaBagaglio(selectedBaggage);
                 JOptionPane.showMessageDialog(AdminDashboard.this,
                     "Stato del bagaglio aggiornato con successo",
                     "Successo", JOptionPane.INFORMATION_MESSAGE);
-
+                baggages = controller.getAllBagagli();
+                baggageComboBox.removeAllItems();
+                for (Bagaglio bagaglio : baggages) {
+                    baggageComboBox.addItem(bagaglio.getCodice() + " - " + bagaglio.getStato());
+                }
                 // Update the combo box
-                baggageComboBox.removeItemAt(selectedIndex);
+               /* baggageComboBox.removeItemAt(selectedIndex);
                 baggageComboBox.insertItemAt(selectedBaggage.getCodice() + " - " + selectedBaggage.getStato(), selectedIndex);
                 baggageComboBox.setSelectedIndex(selectedIndex);
+                */
+
             }
         });
 
@@ -1017,7 +954,6 @@ public class AdminDashboard extends JFrame {
         };
         model.addColumn("Codice Bagaglio");
         model.addColumn("Stato");
-        model.addColumn("Messaggio Utente");
         model.addColumn("Azioni");
 
         // Create table with model
@@ -1026,12 +962,16 @@ public class AdminDashboard extends JFrame {
         // Set preferred column widths
         lostBaggageTable.getColumnModel().getColumn(0).setPreferredWidth(100);
         lostBaggageTable.getColumnModel().getColumn(1).setPreferredWidth(100);
-        lostBaggageTable.getColumnModel().getColumn(2).setPreferredWidth(300);
-        lostBaggageTable.getColumnModel().getColumn(3).setPreferredWidth(100);
+        lostBaggageTable.getColumnModel().getColumn(2).setPreferredWidth(100);
 
         // Add some test data for lost baggage
-        model.addRow(new Object[]{"BAG001", "smarrito", "Il bagaglio è di colore nero con etichetta rossa", "Modifica"});
-        model.addRow(new Object[]{"BAG002", "smarrito", "Valigia blu con adesivi", "Modifica"});
+        for (Bagaglio bagaglio : baggages) {
+            if(bagaglio.getStato() == StatoBagaglio.smarrito){
+                model.addRow(new Object[]{bagaglio.getCodice(), bagaglio.getStato(),  "Modifica"});
+
+            }
+        }
+
 
         // Add mouse listener to handle button clicks in the action column
         lostBaggageTable.addMouseListener(new java.awt.event.MouseAdapter() {
@@ -1040,7 +980,7 @@ public class AdminDashboard extends JFrame {
                 int row = lostBaggageTable.rowAtPoint(evt.getPoint());
                 int col = lostBaggageTable.columnAtPoint(evt.getPoint());
 
-                if (row >= 0 && col == 3) { // Action column
+                if (row >= 0 && col == 2) { // Action column
                     String baggageCode = (String) lostBaggageTable.getValueAt(row, 0);
                     showBaggageStatusDialog(baggageCode, row, lostBaggageTable);
                 }
@@ -1084,7 +1024,6 @@ public class AdminDashboard extends JFrame {
                 model.addRow(new Object[]{
                     bagaglio.getCodice(),
                     bagaglio.getStato(),
-                    "Messaggio utente per " + bagaglio.getCodice(), // In a real app, this would come from the database
                     "Modifica"
                 });
             }

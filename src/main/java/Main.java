@@ -9,12 +9,7 @@ import java.sql.SQLException;
 public class Main {
     public static void main(String[] args) {
         // Initialize database enum types
-        try {
-            ConnessioneDatabase.createStatoVoloEnum();
-        } catch (SQLException | IOException e) {
-            System.err.println("Errore durante la creazione del tipo enum statovolo: " + e.getMessage());
-            e.printStackTrace();
-        }
+
 
         SwingUtilities.invokeLater(new Runnable() {
             @Override

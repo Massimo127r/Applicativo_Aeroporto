@@ -14,10 +14,7 @@ public class Controller {
         this.dao = new ImplementazionePostgresDAO();
     }
 
-    // Metodi per l'autenticazione
-    public Utente login(String login, String password) {
-        return dao.getUtenteByCredentials(login, password);
-    }
+
 
     /**
      * Effettua il login verificando anche il tipo di utente
@@ -32,11 +29,12 @@ public class Controller {
         return dao.getUtenteByCredentialsAndType(login, password, tipoDb);
     }
 
+    /*
     public boolean registraUtente(Utente utente, boolean isAdmin) {
         String tipo = isAdmin ? "amministratore" : "generico";
         return dao.insertUtente(utente, tipo);
     }
-
+*/
     // Metodi per la gestione dei voli
     public List<Volo> getAllVoli() {
         return dao.getAllVoli();
@@ -47,8 +45,8 @@ public class Controller {
     }
 
     public boolean inserisciVolo(String codiceVolo, String compagnia, String origine, String destinazione,
-                                String orarioPrevisto, StatoVolo stato, LocalDate data, int tempoRitardo) {
-        Volo volo = new Volo(codiceVolo, compagnia, origine, destinazione, orarioPrevisto, stato, data, tempoRitardo);
+                                String orarioPrevisto, StatoVolo stato, LocalDate data, int tempoRitardo,  int totalSeats, int availableSeats) {
+        Volo volo = new Volo(codiceVolo, compagnia, origine, destinazione, orarioPrevisto, stato, data, tempoRitardo,totalSeats,availableSeats, 0  );
         return dao.insertVolo(volo);
     }
 
@@ -65,9 +63,6 @@ public class Controller {
         return dao.assignGateToFlight(codiceGate, codiceVolo);
     }
 
-    public Gate getGateByFlightCode(String codiceVolo) {
-        return dao.getGateByFlightCode(codiceVolo);
-    }
 
     // Metodi per la gestione delle prenotazioni
     public List<Prenotazione> getAllPrenotazioni() {

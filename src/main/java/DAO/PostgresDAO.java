@@ -7,7 +7,6 @@ import java.util.List;
 
 public interface PostgresDAO {
     // Metodi per Utente
-    Utente getUtenteByCredentials(String login, String password);
     Utente getUtenteByCredentialsAndType(String login, String password, String tipo);
     boolean insertUtente(Utente utente, String tipo);
 
@@ -20,7 +19,6 @@ public interface PostgresDAO {
     // Metodi per Gate
     List<Gate> getAllGates();
     boolean assignGateToFlight(int codiceGate, String codiceVolo);
-    Gate getGateByFlightCode(String codiceVolo);
 
     // Metodi per Passeggero
     Passeggero getPasseggeroByDocumento(String nDocumento);

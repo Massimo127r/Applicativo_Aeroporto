@@ -138,7 +138,7 @@ public class UserDashboard extends JFrame {
         ));
 
         searchTypeComboBox = new JComboBox<>(new String[] {
-            "Tutti", "Data", "Compagnia", "Codice Volo", "Aeroporto di Partenza", "Aeroporto di Arrivo"
+          "Data", "Compagnia", "Codice Volo", "Aeroporto di Partenza", "Aeroporto di Arrivo"
         });
         UIManager.styleComboBox(searchTypeComboBox);
 
@@ -238,18 +238,10 @@ public class UserDashboard extends JFrame {
         homepagePanel.add(scrollPane, BorderLayout.CENTER);
 
         // Add refresh button
-        JButton refreshButton = new JButton("Aggiorna");
-        UIManager.styleButton(refreshButton);
-        refreshButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                refreshFlightsTable();
-            }
-        });
+
 
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
         buttonPanel.setBackground(UIManager.BACKGROUND_COLOR);
-        buttonPanel.add(refreshButton);
         homepagePanel.add(buttonPanel, BorderLayout.SOUTH);
 
         // Add panel to tabbed pane
@@ -266,7 +258,7 @@ public class UserDashboard extends JFrame {
         for (Volo volo : flights) {
             boolean match = false;
 
-            if (searchType.equals("Tutti") || searchText.isEmpty()) {
+            if ( searchText.isEmpty()) {
                 match = true;
             } else if (searchType.equals("Data") && volo.getData().toString().toLowerCase().contains(searchText)) {
                 match = true;
@@ -329,7 +321,7 @@ public class UserDashboard extends JFrame {
         // Add form fields
         flightComboBox = new JComboBox<>();
         for (Volo volo : flights) {
-            if (volo.getStato() != StatoVolo.cancellato && volo.getStato() != StatoVolo.atterrato) {
+            if (volo.getStato() != StatoVolo.cancellato && volo.getStato() != StatoVolo.atterrato && volo.getPostiDisponibili() >0) {
                 flightComboBox.addItem(volo.getCodiceVolo() + " - " + volo.getCompagnia() + " (" +
                                       volo.getOrigine() + " -> " + volo.getDestinazione() + ")");
             }
@@ -359,6 +351,7 @@ public class UserDashboard extends JFrame {
         bookButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+
                 bookFlight();
             }
         });
@@ -413,6 +406,7 @@ public class UserDashboard extends JFrame {
             JOptionPane.showMessageDialog(this, "Seleziona un volo", "Errore", JOptionPane.ERROR_MESSAGE);
             return;
         }
+
 
         String flightCode = flightString.split(" - ")[0];
         String name = passengerNameField.getText();

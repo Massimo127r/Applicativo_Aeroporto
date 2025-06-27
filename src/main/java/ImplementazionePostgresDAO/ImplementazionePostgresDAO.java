@@ -12,36 +12,8 @@ import java.util.List;
 import java.util.Map;
 
 public class ImplementazionePostgresDAO implements PostgresDAO {
-    // Metodi per Utente
-    @Override
-    public Utente getUtenteByCredentials(String login, String password) {
-        String query = "SELECT * FROM Utente WHERE login = ? AND password = ?";
-        try (Connection conn = ConnessioneDatabase.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query)) {
-            stmt.setString(1, login);
-            stmt.setString(2, password);
-            try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) {
-                    String tipo = rs.getString("ruolo");
-                    String nome = rs.getString("nome");
-                    String cognome = rs.getString("cognome");
+    // Metodi per LOGIN
 
-                    return new Utente(login, password, nome, cognome, tipo);
-                }
-            }
-        } catch (SQLException e) {
-            System.err.println("Errore durante il recupero dell'utente: " + e.getMessage());
-        }
-        return null;
-    }
-
-    /**
-     * Ottiene un utente dal database in base alle credenziali e al ruolo specificato.
-     * @param login Nome utente
-     * @param password Password
-     * @param tipo Ruolo di utente (amministratore o generico)
-     * @return Oggetto Utente se le credenziali sono valide, null altrimenti
-     */
     public Utente getUtenteByCredentialsAndType(String login, String password, String tipo) {
         String query = "SELECT * FROM Utente WHERE login = ? AND password = ? AND ruolo = ?";
         try (Connection conn = ConnessioneDatabase.getConnection();
@@ -62,7 +34,7 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
         }
         return null;
     }
-
+// PER SIGNUP TODO
     @Override
     public boolean insertUtente(Utente utente, String tipo) {
         String query = "INSERT INTO Utente (login, password, nome, cognome, ruolo) VALUES (?, ?, ?, ?, ?)";
@@ -84,7 +56,7 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
     @Override
     public List<Volo> getAllVoli() {
         List<Volo> voli = new ArrayList<>();
-        String query = "SELECT * FROM Volo";
+        String query = "SELECT * FROM Volo ORDER BY  data DESC";
         try (Connection conn = ConnessioneDatabase.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(query)) {
@@ -99,8 +71,9 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
                 int tempoRitardo = rs.getInt("ritardo");
                 int postiTotali = rs.getInt("postitotali");
                 int postiDisponibili = rs.getInt("postidisponibili");
+                int  gate = rs.getInt("gate");
 
-                Volo volo = new Volo(codiceVolo, compagnia, origine, destinazione, orarioPrevisto, stato, data, tempoRitardo, postiTotali, postiDisponibili);
+                Volo volo = new Volo(codiceVolo, compagnia, origine, destinazione, orarioPrevisto, stato, data, tempoRitardo, postiTotali, postiDisponibili, gate);
                 voli.add(volo);
             }
         } catch (SQLException e) {
@@ -109,6 +82,7 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
         return voli;
     }
 
+    //TODO Non utilizzata
     @Override
     public Volo getVoloByCodice(String codiceVolo) {
         String query = "SELECT * FROM Volo WHERE codice = ?";
@@ -126,8 +100,8 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
                     int tempoRitardo = rs.getInt("ritardo");
                     int postiTotali = rs.getInt("postitotali");
                     int postiDisponibili = rs.getInt("postidisponibili");
-
-                    return new Volo(codiceVolo, compagnia, origine, destinazione, orarioPrevisto, stato, data, tempoRitardo, postiTotali, postiDisponibili);
+                    int  gate =rs.getInt("gate");
+                    return new Volo(codiceVolo, compagnia, origine, destinazione, orarioPrevisto, stato, data, tempoRitardo, postiTotali, postiDisponibili, gate);
                 }
             }
         } catch (SQLException e) {
@@ -184,12 +158,12 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
     @Override
     public List<Gate> getAllGates() {
         List<Gate> gates = new ArrayList<>();
-        String query = "SELECT * FROM gates";
+        String query = "SELECT * FROM gate";
         try (Connection conn = ConnessioneDatabase.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(query)) {
             while (rs.next()) {
-                int codice = rs.getInt("codice");
+                int codice = rs.getInt("numero");
                 Gate gate = new Gate(codice);
                 gates.add(gate);
             }
@@ -201,7 +175,7 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
 
     @Override
     public boolean assignGateToFlight(int codiceGate, String codiceVolo) {
-        String query = "INSERT INTO Volo_gates (codice_gate, codice) VALUES (?, ?)";
+        String query = "UPDATE volo SET gate = ? WHERE codice =?";
         try (Connection conn = ConnessioneDatabase.getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, codiceGate);
@@ -213,23 +187,8 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
         }
     }
 
-    @Override
-    public Gate getGateByFlightCode(String codiceVolo) {
-        String query = "SELECT g.codice FROM gates g JOIN Volo_gates vg ON g.codice = vg.codice_gate WHERE vg.codice = ?";
-        try (Connection conn = ConnessioneDatabase.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query)) {
-            stmt.setString(1, codiceVolo);
-            try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) {
-                    int codice = rs.getInt("codice");
-                    return new Gate(codice);
-                }
-            }
-        } catch (SQLException e) {
-            System.err.println("Errore durante il recupero del gate per il volo: " + e.getMessage());
-        }
-        return null;
-    }
+
+
 
     // Metodi per Passeggero
     @Override
@@ -538,7 +497,7 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
     @Override
     public List<Bagaglio> getAllBagagli() {
         List<Bagaglio> bagagli = new ArrayList<>();
-        String query = "SELECT * FROM bagagli";
+        String query = "SELECT * FROM bagaglio";
         try (Connection conn = ConnessioneDatabase.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(query)) {
@@ -577,7 +536,7 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
 
     @Override
     public Bagaglio getBagaglioByCodice(String codice) {
-        String query = "SELECT * FROM bagagli WHERE codice = ?";
+        String query = "SELECT * FROM bagaglio WHERE codice = ?";
         try (Connection conn = ConnessioneDatabase.getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setString(1, codice);
@@ -643,7 +602,7 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
 
     @Override
     public boolean updateBagaglio(Bagaglio bagaglio) {
-        String query = "UPDATE bagagli SET stato = ? WHERE codice = ?";
+        String query = "UPDATE bagaglio SET stato = ? WHERE codice = ?";
         try (Connection conn = ConnessioneDatabase.getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setString(1, bagaglio.getStato().toString());
@@ -658,7 +617,7 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
     @Override
     public List<Bagaglio> getBagagliSmarriti() {
         List<Bagaglio> bagagliSmarriti = new ArrayList<>();
-        String query = "SELECT * FROM bagagli WHERE stato = 'smarrito'";
+        String query = "SELECT * FROM bagaglio WHERE stato = 'smarrito'";
         try (Connection conn = ConnessioneDatabase.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(query)) {
