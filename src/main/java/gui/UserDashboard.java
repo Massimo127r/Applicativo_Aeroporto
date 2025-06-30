@@ -90,13 +90,39 @@ public class UserDashboard extends JFrame {
         // Add tabbed pane to main panel
         mainPanel.add(tabbedPane, BorderLayout.CENTER);
 
-        // Add welcome label at the top
+        // Create top panel with welcome label and logout button
+        JPanel topPanel = new JPanel(new BorderLayout());
+        topPanel.setBackground(UIManager.BACKGROUND_COLOR);
+        topPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        // Add welcome label
         JLabel welcomeLabel = new JLabel("Benvenuto, " + user.getNome() + " " + user.getCognome() + "!");
         welcomeLabel.setHorizontalAlignment(JLabel.CENTER);
         welcomeLabel.setFont(UIManager.TITLE_FONT);
         welcomeLabel.setForeground(UIManager.PRIMARY_COLOR);
         welcomeLabel.setBorder(BorderFactory.createEmptyBorder(15, 0, 15, 0));
-        mainPanel.add(welcomeLabel, BorderLayout.NORTH);
+        topPanel.add(welcomeLabel, BorderLayout.CENTER);
+
+        // Add logout button
+        JPanel logoutPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        logoutPanel.setBackground(UIManager.BACKGROUND_COLOR);
+        JButton logoutButton = new JButton("Log Out");
+        UIManager.styleButton(logoutButton);
+        logoutButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                // Close this window
+                dispose();
+
+                // Open login window
+                Login loginFrame = new Login(controller);
+                loginFrame.setVisible(true);
+            }
+        });
+        logoutPanel.add(logoutButton);
+        topPanel.add(logoutPanel, BorderLayout.EAST);
+
+        mainPanel.add(topPanel, BorderLayout.NORTH);
 
         // Set main panel as content pane
         setContentPane(mainPanel);

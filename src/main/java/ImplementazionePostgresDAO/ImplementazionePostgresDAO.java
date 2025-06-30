@@ -479,13 +479,12 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
     }
 
     @Override
-    public boolean updatePrenotazione(Prenotazione prenotazione) {
-        String query = "UPDATE prenotazioni SET posto = ?, stato = ? WHERE numero_biglietto = ?";
+    public boolean updatePrenotazione(StatoPrenotazione prenotazione, String numeroBiglietto) {
+        String query = "UPDATE prenotazione SET stato = ? WHERE numerobiglietto = ?";
         try (Connection conn = ConnessioneDatabase.getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {
-            stmt.setString(1, prenotazione.getPosto());
-            stmt.setString(2, prenotazione.getStato().toString());
-            stmt.setString(3, prenotazione.getNumeroBiglietto());
+            stmt.setString(1, prenotazione.toString());
+            stmt.setString(2, numeroBiglietto);
             return stmt.executeUpdate() > 0;
         } catch (SQLException e) {
             System.err.println("Errore durante l'aggiornamento della prenotazione: " + e.getMessage());

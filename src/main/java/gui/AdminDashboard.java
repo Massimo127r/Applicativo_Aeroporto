@@ -65,21 +65,44 @@ public class AdminDashboard extends JFrame {
         // Create and add panels for each tab
         createFlightsPanel();
         createAddFlightPanel();
-        createUpdateFlightPanel();
-        createGateAssignmentPanel();
-        createUpdateBaggagePanel();
         createLostBaggagePanel();
 
         // Add tabbed pane to main panel
         mainPanel.add(tabbedPane, BorderLayout.CENTER);
 
-        // Add welcome label at the top
+        // Create top panel with welcome label and logout button
+        JPanel topPanel = new JPanel(new BorderLayout());
+        topPanel.setBackground(UIManager.BACKGROUND_COLOR);
+        topPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        // Add welcome label
         JLabel welcomeLabel = new JLabel("Benvenuto, " + admin.getNome() + " " + admin.getCognome() + "!");
         welcomeLabel.setHorizontalAlignment(JLabel.CENTER);
         welcomeLabel.setFont(UIManager.TITLE_FONT);
         welcomeLabel.setForeground(UIManager.PRIMARY_COLOR);
         welcomeLabel.setBorder(BorderFactory.createEmptyBorder(15, 0, 15, 0));
-        mainPanel.add(welcomeLabel, BorderLayout.NORTH);
+        topPanel.add(welcomeLabel, BorderLayout.CENTER);
+
+        // Add logout button
+        JPanel logoutPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        logoutPanel.setBackground(UIManager.BACKGROUND_COLOR);
+        JButton logoutButton = new JButton("Log Out");
+        UIManager.styleButton(logoutButton);
+        logoutButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                // Close this window
+                dispose();
+
+                // Open login window
+                Login loginFrame = new Login(controller);
+                loginFrame.setVisible(true);
+            }
+        });
+        logoutPanel.add(logoutButton);
+        topPanel.add(logoutPanel, BorderLayout.EAST);
+
+        mainPanel.add(topPanel, BorderLayout.NORTH);
 
         // Set main panel as content pane
         setContentPane(mainPanel);
@@ -434,12 +457,20 @@ public class AdminDashboard extends JFrame {
 
                     // Generate a unique flight code
                     String code = generateFlightCode(airline);
+                    boolean success = false;
 
-                    // Create new flight
-                    Volo newFlight = new Volo(code, airline, origin, destination, time, status, date, delay, totalSeats, availableSeats, 0);
+                    try {
+                        // Create new flight
+                        Volo newFlight = new Volo(code, airline, origin, destination, time, status, date, delay, totalSeats, availableSeats, 0);
 
-                    // Save to database
-                    boolean success = controller.inserisciVolo(code, airline, origin, destination, time, status, date, delay,  totalSeats, availableSeats);
+                        // Save to database
+                        success = controller.inserisciVolo(code, airline, origin, destination, time, status, date, delay, totalSeats, availableSeats);
+                    } catch (IllegalArgumentException ex) {
+                        JOptionPane.showMessageDialog(AdminDashboard.this,
+                            ex.getMessage(),
+                            "Errore di validazione", JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
 
                     if (success) {
                         // Refresh flights from database
@@ -494,426 +525,7 @@ public class AdminDashboard extends JFrame {
         tabbedPane.addTab("Inserisci Volo", addFlightPanel);
     }
 
-    private void createUpdateFlightPanel() {
-        updateFlightPanel = new JPanel(new BorderLayout());
 
-        // Create selection panel
-        JPanel selectionPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        selectionPanel.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
-
-        JLabel selectLabel = new JLabel("Seleziona Volo:");
-        JComboBox<String> flightComboBox = new JComboBox<>();
-
-        // Populate flight combo box
-        for (Volo volo : flights) {
-            flightComboBox.addItem(volo.getCodiceVolo() + " - " + volo.getCompagnia() + " (" +
-                                  volo.getOrigine() + " -> " + volo.getDestinazione() + ")");
-        }
-
-        selectionPanel.add(selectLabel);
-        selectionPanel.add(flightComboBox);
-
-        updateFlightPanel.add(selectionPanel, BorderLayout.NORTH);
-
-        // Create form panel
-        JPanel formPanel = new JPanel(new GridLayout(9, 2, 10, 10));
-        formPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-
-        // Add form fields (excluding code field since it's selected from dropdown)
-        JTextField airlineField = new JTextField();
-        JTextField originField = new JTextField();
-        JTextField destinationField = new JTextField();
-        JTextField timeField = new JTextField();
-        JComboBox<StatoVolo> statusComboBox = new JComboBox<>(StatoVolo.values());
-        JTextField dateField = new JTextField();
-        JTextField delayField = new JTextField();
-        JTextField totalSeatsField = new JTextField();
-        JTextField availableSeatsField = new JTextField();
-
-        formPanel.add(new JLabel("Compagnia:"));
-        formPanel.add(airlineField);
-        formPanel.add(new JLabel("Origine:"));
-        formPanel.add(originField);
-        formPanel.add(new JLabel("Destinazione:"));
-        formPanel.add(destinationField);
-        formPanel.add(new JLabel("Orario:"));
-        formPanel.add(timeField);
-        formPanel.add(new JLabel("Stato:"));
-        formPanel.add(statusComboBox);
-        formPanel.add(new JLabel("Data (YYYY-MM-DD):"));
-        formPanel.add(dateField);
-        formPanel.add(new JLabel("Ritardo (min):"));
-        formPanel.add(delayField);
-        formPanel.add(new JLabel("Posti Totali:"));
-        formPanel.add(totalSeatsField);
-        formPanel.add(new JLabel("Posti Disponibili:"));
-        formPanel.add(availableSeatsField);
-
-        // Add form panel to center
-        updateFlightPanel.add(formPanel, BorderLayout.CENTER);
-
-        // Add buttons
-        JPanel buttonPanel = new JPanel();
-        JButton updateButton = new JButton("Aggiorna Volo");
-        // Make the button smaller and more suitable for the screen
-        updateButton.setPreferredSize(new Dimension(150, 30));
-        updateButton.setFont(new Font("Arial", Font.PLAIN, 12));
-
-        // Add action listener to flight combo box to populate form fields
-        flightComboBox.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                int selectedIndex = flightComboBox.getSelectedIndex();
-                if (selectedIndex >= 0 && selectedIndex < flights.size()) {
-                    Volo selectedFlight = flights.get(selectedIndex);
-                    airlineField.setText(selectedFlight.getCompagnia());
-                    originField.setText(selectedFlight.getOrigine());
-                    destinationField.setText(selectedFlight.getDestinazione());
-                    timeField.setText(selectedFlight.getOrarioPrevisto());
-                    statusComboBox.setSelectedItem(selectedFlight.getStato());
-                    dateField.setText(selectedFlight.getData().toString());
-                    delayField.setText(String.valueOf(selectedFlight.getTempoRitardo()));
-                    totalSeatsField.setText(String.valueOf(selectedFlight.getPostiTotali()));
-                    availableSeatsField.setText(String.valueOf(selectedFlight.getPostiDisponibili()));
-                }
-            }
-        });
-
-        // Trigger the action listener to populate fields initially if there are flights
-        if (flightComboBox.getItemCount() > 0) {
-            flightComboBox.setSelectedIndex(0);
-        }
-
-        updateButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                try {
-                    int selectedIndex = flightComboBox.getSelectedIndex();
-                    if (selectedIndex < 0) {
-                        JOptionPane.showMessageDialog(AdminDashboard.this,
-                            "Seleziona un volo da aggiornare",
-                            "Errore", JOptionPane.ERROR_MESSAGE);
-                        return;
-                    }
-
-                    String airline = airlineField.getText();
-                    String origin = originField.getText();
-                    String destination = destinationField.getText();
-                    String time = timeField.getText();
-                    StatoVolo status = (StatoVolo) statusComboBox.getSelectedItem();
-                    LocalDate date = LocalDate.parse(dateField.getText());
-                    int delay = Integer.parseInt(delayField.getText());
-                    int totalSeats = Integer.parseInt(totalSeatsField.getText());
-                    int availableSeats = Integer.parseInt(availableSeatsField.getText());
-
-                    if (airline.isEmpty() || origin.isEmpty() || destination.isEmpty() || time.isEmpty() || 
-                        totalSeats <= 0 || availableSeats <= 0 || availableSeats > totalSeats) {
-                        JOptionPane.showMessageDialog(AdminDashboard.this,
-                            "Tutti i campi sono obbligatori. I posti totali e disponibili devono essere maggiori di zero, e i posti disponibili non possono superare i posti totali.",
-                            "Errore", JOptionPane.ERROR_MESSAGE);
-                        return;
-                    }
-
-                    // Update the selected flight
-                    Volo selectedFlight = flights.get(selectedIndex);
-
-                    // Check if origin or destination is Napoli
-                    String originalOrigin = selectedFlight.getOrigine();
-                    String originalDestination = selectedFlight.getDestinazione();
-
-                    // Constraint: Admin can only update the city that is different from Napoli
-                    if (originalOrigin.equals("Napoli") && !originalDestination.equals("Napoli")) {
-                        // If origin is Napoli, only allow updating destination
-                        if (!origin.equals("Napoli")) {
-                            JOptionPane.showMessageDialog(AdminDashboard.this,
-                                "Non è possibile modificare l'origine da Napoli ad altra città",
-                                "Errore", JOptionPane.ERROR_MESSAGE);
-                            return;
-                        }
-                        // Prevent setting destination to Napoli (both would be Napoli)
-                        if (destination.equals("Napoli")) {
-                            JOptionPane.showMessageDialog(AdminDashboard.this,
-                                "Non è possibile impostare sia origine che destinazione a Napoli",
-                                "Errore", JOptionPane.ERROR_MESSAGE);
-                            return;
-                        }
-                    } else if (!originalOrigin.equals("Napoli") && originalDestination.equals("Napoli")) {
-                        // If destination is Napoli, only allow updating origin
-                        if (!destination.equals("Napoli")) {
-                            JOptionPane.showMessageDialog(AdminDashboard.this,
-                                "Non è possibile modificare la destinazione da Napoli ad altra città",
-                                "Errore", JOptionPane.ERROR_MESSAGE);
-                            return;
-                        }
-                        // Prevent setting origin to Napoli (both would be Napoli)
-                        if (origin.equals("Napoli")) {
-                            JOptionPane.showMessageDialog(AdminDashboard.this,
-                                "Non è possibile impostare sia origine che destinazione a Napoli",
-                                "Errore", JOptionPane.ERROR_MESSAGE);
-                            return;
-                        }
-                    } else if (originalOrigin.equals("Napoli") && originalDestination.equals("Napoli")) {
-                        // If both are Napoli (shouldn't happen normally), don't allow changes
-                        if (!origin.equals("Napoli") || !destination.equals("Napoli")) {
-                            JOptionPane.showMessageDialog(AdminDashboard.this,
-                                "Non è possibile modificare questo volo",
-                                "Errore", JOptionPane.ERROR_MESSAGE);
-                            return;
-                        }
-                    } else {
-                        // Neither origin nor destination is Napoli
-                        // At least one of them must remain different from Napoli
-                        if (origin.equals("Napoli") && destination.equals("Napoli")) {
-                            JOptionPane.showMessageDialog(AdminDashboard.this,
-                                "Non è possibile impostare sia origine che destinazione a Napoli",
-                                "Errore", JOptionPane.ERROR_MESSAGE);
-                            return;
-                        }
-                    }
-
-                    selectedFlight.setCompagnia(airline);
-                    selectedFlight.setOrigine(origin);
-                    selectedFlight.setDestinazione(destination);
-                    selectedFlight.setOrarioPrevisto(time);
-                    selectedFlight.setStato(status);
-                    selectedFlight.setData(date);
-                    selectedFlight.setTempoRitardo(delay);
-                    selectedFlight.setPostiDisponibili(availableSeats);
-                    selectedFlight.setPostiTotali(totalSeats);
-                     controller.modificaVolo(selectedFlight);
-
-
-
-                    JOptionPane.showMessageDialog(AdminDashboard.this,
-                        "Volo aggiornato con successo",
-                        "Successo", JOptionPane.INFORMATION_MESSAGE);
-
-                    // Refresh flights table and combo box
-                    refreshFlightsTable();
-                    flightComboBox.removeAllItems();
-                    // Populate flight combo box
-                    for (Volo volo : flights) {
-                        flightComboBox.addItem(volo.getCodiceVolo() + " - " + volo.getCompagnia() + " (" +
-                                volo.getOrigine() + " -> " + volo.getDestinazione() + ")");
-                    }
-                    // Update the combo box
-                   /*
-                    flightComboBox.removeItemAt(selectedIndex);
-                    flightComboBox.insertItemAt(selectedFlight.getCodiceVolo() + " - " + selectedFlight.getCompagnia() + " (" +
-                                              selectedFlight.getOrigine() + " -> " + selectedFlight.getDestinazione() + ")", selectedIndex);
-                    flightComboBox.setSelectedIndex(selectedIndex);
-                    */
-
-                } catch (Exception ex) {
-                    JOptionPane.showMessageDialog(AdminDashboard.this,
-                        "Errore: " + ex.getMessage(),
-                        "Errore", JOptionPane.ERROR_MESSAGE);
-                }
-            }
-        });
-
-        buttonPanel.add(updateButton);
-        updateFlightPanel.add(buttonPanel, BorderLayout.SOUTH);
-
-        // Add panel to tabbed pane
-        tabbedPane.addTab("Aggiorna Volo", updateFlightPanel);
-    }
-
-    private void createGateAssignmentPanel() {
-        gateAssignmentPanel = new JPanel(new BorderLayout());
-
-        // Create form panel
-        JPanel formPanel = new JPanel(new GridLayout(3, 2, 10, 10));
-        formPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-
-        // Add form fields
-        JComboBox<String> flightComboBox = new JComboBox<>();
-
-        // Only show flights departing from Napoli
-        List<Volo> departingFlights = new ArrayList<>();
-        for (Volo volo : flights) {
-            if (volo.getOrigine().equals("Napoli")) {
-                departingFlights.add(volo);
-                flightComboBox.addItem(volo.getCodiceVolo() + " - " + volo.getCompagnia() + " (" +
-                                      volo.getOrigine() + " -> " + volo.getDestinazione() + ")");
-            }
-        }
-
-        JComboBox<Integer> gateComboBox = new JComboBox<>();
-        for (Gate gate : gates) {
-            gateComboBox.addItem(gate.getCodice());
-        }
-
-        // Add information label
-        JLabel infoLabel = new JLabel("Solo i voli in partenza da Napoli possono avere un gate assegnato");
-        infoLabel.setForeground(Color.BLUE);
-
-        formPanel.add(infoLabel);
-        formPanel.add(new JLabel()); // Empty cell for grid alignment
-        formPanel.add(new JLabel("Volo:"));
-        formPanel.add(flightComboBox);
-        formPanel.add(new JLabel("Gate:"));
-        formPanel.add(gateComboBox);
-
-        // Create a panel with BoxLayout for better control of vertical spacing
-        JPanel centerPanel = new JPanel();
-        centerPanel.setLayout(new BoxLayout(centerPanel, BoxLayout.Y_AXIS));
-        centerPanel.add(formPanel);
-
-        // Add vertical spacing
-        centerPanel.add(Box.createVerticalStrut(100)); // Add 100px of vertical space
-
-        // Add the center panel to the main panel
-        gateAssignmentPanel.add(centerPanel, BorderLayout.CENTER);
-
-        // Add buttons
-        JPanel buttonPanel = new JPanel();
-        buttonPanel.setBorder(BorderFactory.createEmptyBorder(20, 0, 20, 0)); // Add padding around buttons
-        JButton assignButton = new JButton("Assegna Gate");
-
-        assignButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                int flightIndex = flightComboBox.getSelectedIndex();
-                int gateIndex = gateComboBox.getSelectedIndex();
-
-                if (flightIndex >= 0 && gateIndex >= 0) {
-                    if (flightIndex < departingFlights.size()) {
-                        Volo selectedFlight = departingFlights.get(flightIndex);
-                        controller.assegnaGate(gates.get(gateIndex).getCodice(), selectedFlight.getCodiceVolo());
-                        JOptionPane.showMessageDialog(AdminDashboard.this,
-                            "Gate " + gates.get(gateIndex).getCodice() +
-                            " assegnato al volo " + selectedFlight.getCodiceVolo(),
-                            "Successo", JOptionPane.INFORMATION_MESSAGE);
-                        refreshFlightsTable();
-                    }
-                } else {
-                    JOptionPane.showMessageDialog(AdminDashboard.this,
-                        "Seleziona un volo e un gate",
-                        "Errore", JOptionPane.ERROR_MESSAGE);
-                }
-            }
-        });
-
-        buttonPanel.add(assignButton);
-        gateAssignmentPanel.add(buttonPanel, BorderLayout.SOUTH);
-
-        // Add panel to tabbed pane
-        tabbedPane.addTab("Assegna Gate", gateAssignmentPanel);
-    }
-
-
-
-    private void createUpdateBaggagePanel() {
-        updateBaggagePanel = new JPanel(new BorderLayout());
-
-        // Create selection panel
-        JPanel selectionPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        selectionPanel.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
-
-        JLabel selectLabel = new JLabel("Seleziona Bagaglio:");
-        JComboBox<String> baggageComboBox = new JComboBox<>();
-        // Make the baggage selector smaller, similar to the status selector
-        baggageComboBox.setPreferredSize(new Dimension(150, 25));
-
-        // Populate baggage combo box
-        for (Bagaglio bagaglio : baggages) {
-            baggageComboBox.addItem(bagaglio.getCodice() + " - " + bagaglio.getStato());
-        }
-
-        selectionPanel.add(selectLabel);
-        selectionPanel.add(baggageComboBox);
-
-        updateBaggagePanel.add(selectionPanel, BorderLayout.NORTH);
-
-        // Create form panel
-        JPanel formPanel = new JPanel(new GridLayout(1, 2, 10, 10));
-        formPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-
-        // Add form fields (excluding code field since it's selected from dropdown)
-        JComboBox<StatoBagaglio> statusComboBox = new JComboBox<>(StatoBagaglio.values());
-        // Make the status selector smaller, with at most 20px extra padding compared to text fields
-        statusComboBox.setPreferredSize(new Dimension(150, 25));
-
-        formPanel.add(new JLabel("Stato:"));
-        formPanel.add(statusComboBox);
-
-        // Create a panel with BoxLayout for better control of vertical spacing
-        JPanel centerPanel = new JPanel();
-        centerPanel.setLayout(new BoxLayout(centerPanel, BoxLayout.Y_AXIS));
-        centerPanel.add(formPanel);
-
-        // Add vertical spacing
-        centerPanel.add(Box.createVerticalStrut(100)); // Add 100px of vertical space
-
-        // Add the center panel to the main panel
-        updateBaggagePanel.add(centerPanel, BorderLayout.CENTER);
-
-        // Add buttons
-        JPanel buttonPanel = new JPanel();
-        buttonPanel.setBorder(BorderFactory.createEmptyBorder(20, 0, 20, 0)); // Add padding around buttons
-        JButton updateButton = new JButton("Aggiorna Bagaglio");
-        // Make the button smaller and more suitable for the screen
-        updateButton.setPreferredSize(new Dimension(150, 30));
-        updateButton.setFont(new Font("Arial", Font.PLAIN, 12));
-
-        // Add action listener to baggage combo box to populate form fields
-        baggageComboBox.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                int selectedIndex = baggageComboBox.getSelectedIndex();
-                if (selectedIndex >= 0 && selectedIndex < baggages.size()) {
-                    Bagaglio selectedBaggage = baggages.get(selectedIndex);
-                    statusComboBox.setSelectedItem(selectedBaggage.getStato());
-                }
-            }
-        });
-
-        // Trigger the action listener to populate fields initially if there are baggages
-        if (baggageComboBox.getItemCount() > 0) {
-            baggageComboBox.setSelectedIndex(0);
-        }
-
-        updateButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                int selectedIndex = baggageComboBox.getSelectedIndex();
-                if (selectedIndex < 0) {
-                    JOptionPane.showMessageDialog(AdminDashboard.this,
-                        "Seleziona un bagaglio da aggiornare",
-                        "Errore", JOptionPane.ERROR_MESSAGE);
-                    return;
-                }
-
-                StatoBagaglio status = (StatoBagaglio) statusComboBox.getSelectedItem();
-
-                // Update the selected baggage
-                Bagaglio selectedBaggage = baggages.get(selectedIndex);
-                selectedBaggage.setStato(status);
-    controller.aggiornaBagaglio(selectedBaggage);
-                JOptionPane.showMessageDialog(AdminDashboard.this,
-                    "Stato del bagaglio aggiornato con successo",
-                    "Successo", JOptionPane.INFORMATION_MESSAGE);
-                baggages = controller.getAllBagagli();
-                baggageComboBox.removeAllItems();
-                for (Bagaglio bagaglio : baggages) {
-                    baggageComboBox.addItem(bagaglio.getCodice() + " - " + bagaglio.getStato());
-                }
-                // Update the combo box
-               /* baggageComboBox.removeItemAt(selectedIndex);
-                baggageComboBox.insertItemAt(selectedBaggage.getCodice() + " - " + selectedBaggage.getStato(), selectedIndex);
-                baggageComboBox.setSelectedIndex(selectedIndex);
-                */
-
-            }
-        });
-
-        buttonPanel.add(updateButton);
-        updateBaggagePanel.add(buttonPanel, BorderLayout.SOUTH);
-
-        // Add panel to tabbed pane
-        tabbedPane.addTab("Aggiorna Bagaglio", updateBaggagePanel);
-    }
 
     /**
      * Generates a unique flight code based on the airline name
@@ -1101,47 +713,167 @@ public class AdminDashboard extends JFrame {
     private void showFlightDetailsDialog(Volo flight) {
         // Create a dialog
         JDialog dialog = new JDialog(this, "Dettagli Volo: " + flight.getCodiceVolo(), true);
-        dialog.setSize(800, 600);
+        dialog.setSize(900, 700);
         dialog.setLocationRelativeTo(this);
 
         // Create main panel with BorderLayout
         JPanel mainPanel = new JPanel(new BorderLayout());
         mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        // Create info panel
-        JPanel infoPanel = new JPanel(new GridLayout(0, 2, 10, 10));
-        infoPanel.setBorder(BorderFactory.createTitledBorder("Informazioni Volo"));
+        // Create tabbed pane for different sections
+        JTabbedPane dialogTabs = new JTabbedPane();
 
-        infoPanel.add(new JLabel("Codice Volo:"));
-        infoPanel.add(new JLabel(flight.getCodiceVolo()));
-        infoPanel.add(new JLabel("Compagnia:"));
-        infoPanel.add(new JLabel(flight.getCompagnia()));
-        infoPanel.add(new JLabel("Origine:"));
-        infoPanel.add(new JLabel(flight.getOrigine()));
-        infoPanel.add(new JLabel("Destinazione:"));
-        infoPanel.add(new JLabel(flight.getDestinazione()));
-        infoPanel.add(new JLabel("Orario:"));
-        infoPanel.add(new JLabel(flight.getOrarioPrevisto()));
-        infoPanel.add(new JLabel("Stato:"));
-        infoPanel.add(new JLabel(flight.getStato().toString()));
-        infoPanel.add(new JLabel("Data:"));
-        infoPanel.add(new JLabel(flight.getData().toString()));
-        infoPanel.add(new JLabel("Ritardo:"));
-        infoPanel.add(new JLabel(flight.getTempoRitardo() + " min"));
+        // Create info panel with flight details and edit button
+        JPanel infoPanel = new JPanel(new BorderLayout());
+        infoPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        // Flight details section
+        JPanel detailsPanel = new JPanel(new GridLayout(0, 2, 10, 10));
+        detailsPanel.setBorder(BorderFactory.createTitledBorder("Dettagli del volo"));
+
+        detailsPanel.add(new JLabel("Codice Volo:"));
+        detailsPanel.add(new JLabel(flight.getCodiceVolo()));
+        detailsPanel.add(new JLabel("Compagnia:"));
+        detailsPanel.add(new JLabel(flight.getCompagnia()));
+        detailsPanel.add(new JLabel("Origine:"));
+        detailsPanel.add(new JLabel(flight.getOrigine()));
+        detailsPanel.add(new JLabel("Destinazione:"));
+        detailsPanel.add(new JLabel(flight.getDestinazione()));
+        detailsPanel.add(new JLabel("Orario:"));
+        detailsPanel.add(new JLabel(flight.getOrarioPrevisto()));
+        detailsPanel.add(new JLabel("Stato:"));
+        detailsPanel.add(new JLabel(flight.getStato().toString()));
+        detailsPanel.add(new JLabel("Data:"));
+        detailsPanel.add(new JLabel(flight.getData().toString()));
+        detailsPanel.add(new JLabel("Ritardo:"));
+        detailsPanel.add(new JLabel(flight.getTempoRitardo() + " min"));
 
         // Get the seat capacity from the flight
         int totalSeats = flight.getPostiTotali();
         int availableSeats = flight.getPostiDisponibili();
         int occupiedSeats = totalSeats - availableSeats;
 
-        infoPanel.add(new JLabel("Posti Totali:"));
-        infoPanel.add(new JLabel(String.valueOf(totalSeats)));
-        infoPanel.add(new JLabel("Posti Disponibili:"));
-        infoPanel.add(new JLabel(String.valueOf(availableSeats)));
-        infoPanel.add(new JLabel("Posti Occupati:"));
-        infoPanel.add(new JLabel(occupiedSeats + " / " + totalSeats));
+        detailsPanel.add(new JLabel("Posti Totali:"));
+        detailsPanel.add(new JLabel(String.valueOf(totalSeats)));
+        detailsPanel.add(new JLabel("Posti Disponibili:"));
+        detailsPanel.add(new JLabel(String.valueOf(availableSeats)));
+        detailsPanel.add(new JLabel("Posti Occupati:"));
+        detailsPanel.add(new JLabel(occupiedSeats + " / " + totalSeats));
 
-        mainPanel.add(infoPanel, BorderLayout.NORTH);
+        // Add gate information if available
+        detailsPanel.add(new JLabel("Gate:"));
+        detailsPanel.add(new JLabel(flight.getGate() > 0 ? String.valueOf(flight.getGate()) : "Non assegnato"));
+
+        infoPanel.add(detailsPanel, BorderLayout.CENTER);
+
+        // Add edit button and gate assignment button if applicable
+        JPanel editButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JButton editButton = new JButton("Modifica");
+        editButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                showUpdateFlightDialog(flight, dialog);
+            }
+        });
+        editButtonPanel.add(editButton);
+
+        // Add gate assignment button if the flight is departing from Napoli
+        if (flight.getOrigine().equalsIgnoreCase("NAPOLI")) {
+            JButton assignGateButton = new JButton("Assegna Gate");
+            assignGateButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    // Create a dialog for gate assignment
+                    JDialog gateDialog = new JDialog(dialog, "Assegna Gate", true);
+                    gateDialog.setSize(400, 200);
+                    gateDialog.setLocationRelativeTo(dialog);
+
+                    JPanel gatePanel = new JPanel(new BorderLayout());
+                    gatePanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+                    JPanel formPanel = new JPanel(new GridLayout(2, 2, 10, 10));
+                    JLabel gateLabel = new JLabel("Seleziona Gate:");
+                    JComboBox<Integer> gateComboBox = new JComboBox<>();
+
+                    // Add gate options
+                    for (Gate gate : gates) {
+                        gateComboBox.addItem(gate.getCodice());
+                    }
+
+                    // Set current gate if assigned
+                    if (flight.getGate() > 0) {
+                        gateComboBox.setSelectedItem(flight.getGate());
+                    }
+
+                    formPanel.add(gateLabel);
+                    formPanel.add(gateComboBox);
+
+                    gatePanel.add(formPanel, BorderLayout.CENTER);
+
+                    JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+                    JButton confirmButton = new JButton("Conferma");
+                    JButton cancelButton = new JButton("Annulla");
+
+                    confirmButton.addActionListener(new ActionListener() {
+                        @Override
+                        public void actionPerformed(ActionEvent e) {
+                            int selectedGate = (Integer) gateComboBox.getSelectedItem();
+
+                            // Update the flight's gate
+                            flight.setGate(selectedGate);
+                            controller.assegnaGate(selectedGate, flight.getCodiceVolo());
+
+                            // Update the gate display in the details panel
+                            for (int i = 0; i < detailsPanel.getComponentCount(); i++) {
+                                Component comp = detailsPanel.getComponent(i);
+                                if (comp instanceof JLabel && ((JLabel) comp).getText().equals("Gate:")) {
+                                    // The next component is the gate value label
+                                    JLabel gateValueLabel = (JLabel) detailsPanel.getComponent(i + 1);
+                                    gateValueLabel.setText(String.valueOf(selectedGate));
+                                    break;
+                                }
+                            }
+
+                            detailsPanel.revalidate();
+                            detailsPanel.repaint();
+
+                            JOptionPane.showMessageDialog(gateDialog, 
+                                "Gate " + selectedGate + " assegnato al volo " + flight.getCodiceVolo(),
+                                "Gate Assegnato", JOptionPane.INFORMATION_MESSAGE);
+
+                            // Refresh the flights table to show the updated gate
+                            refreshFlightsTable();
+
+                            gateDialog.dispose();
+                        }
+                    });
+
+                    cancelButton.addActionListener(new ActionListener() {
+                        @Override
+                        public void actionPerformed(ActionEvent e) {
+                            gateDialog.dispose();
+                        }
+                    });
+
+                    buttonPanel.add(confirmButton);
+                    buttonPanel.add(cancelButton);
+                    gatePanel.add(buttonPanel, BorderLayout.SOUTH);
+
+                    gateDialog.setContentPane(gatePanel);
+                    gateDialog.setVisible(true);
+                }
+            });
+            editButtonPanel.add(assignGateButton);
+        }
+
+        infoPanel.add(editButtonPanel, BorderLayout.SOUTH);
+
+        // Gate assignment functionality has been moved to a button next to "Modifica"
+        JPanel gatePanel = null;
+
+        // Create bookings panel
+        JPanel bookingsPanel = new JPanel(new BorderLayout());
+        bookingsPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
         // Create bookings table
         DefaultTableModel model = new DefaultTableModel() {
@@ -1182,9 +914,27 @@ public class AdminDashboard extends JFrame {
 
         JScrollPane scrollPane = new JScrollPane(bookingsTable);
         scrollPane.setBorder(BorderFactory.createTitledBorder("Prenotazioni"));
-        mainPanel.add(scrollPane, BorderLayout.CENTER);
+        bookingsPanel.add(scrollPane, BorderLayout.CENTER);
 
-        // Add buttons
+        // Add collective baggage management button
+        JPanel baggageButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JButton manageBaggageButton = new JButton("Gestione Collettiva Bagagli");
+        manageBaggageButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                showCollectiveBaggageManagementDialog(flight, bookingsTable);
+            }
+        });
+        baggageButtonPanel.add(manageBaggageButton);
+        bookingsPanel.add(baggageButtonPanel, BorderLayout.SOUTH);
+
+        // Add tabs
+        dialogTabs.addTab("Dettagli Volo", infoPanel);
+        dialogTabs.addTab("Prenotazioni", bookingsPanel);
+
+        mainPanel.add(dialogTabs, BorderLayout.CENTER);
+
+        // Add close button
         JPanel buttonPanel = new JPanel();
         JButton closeButton = new JButton("Chiudi");
         closeButton.addActionListener(new ActionListener() {
@@ -1202,6 +952,243 @@ public class AdminDashboard extends JFrame {
     }
 
     /**
+     * Shows a dialog to update flight details
+     * @param flight The flight to update
+     * @param parentDialog The parent dialog
+     */
+    private void showUpdateFlightDialog(Volo flight, JDialog parentDialog) {
+        // Create a dialog
+        JDialog dialog = new JDialog(parentDialog, "Aggiorna Volo: " + flight.getCodiceVolo(), true);
+        dialog.setSize(500, 500);
+        dialog.setLocationRelativeTo(parentDialog);
+
+        // Create main panel with BorderLayout
+        JPanel mainPanel = new JPanel(new BorderLayout());
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        // Create form panel
+        JPanel formPanel = new JPanel(new GridLayout(9, 2, 10, 10));
+        formPanel.setBorder(BorderFactory.createTitledBorder("Aggiorna Volo"));
+
+        // Add form fields
+        JTextField airlineField = new JTextField(flight.getCompagnia());
+        JTextField originField = new JTextField(flight.getOrigine());
+        JTextField destinationField = new JTextField(flight.getDestinazione());
+        JTextField timeField = new JTextField(flight.getOrarioPrevisto());
+        JComboBox<StatoVolo> statusComboBox = new JComboBox<>(StatoVolo.values());
+        statusComboBox.setSelectedItem(flight.getStato());
+        JTextField dateField = new JTextField(flight.getData().toString());
+        JTextField delayField = new JTextField(String.valueOf(flight.getTempoRitardo()));
+        JTextField totalSeatsField = new JTextField(String.valueOf(flight.getPostiTotali()));
+        JTextField availableSeatsField = new JTextField(String.valueOf(flight.getPostiDisponibili()));
+
+        formPanel.add(new JLabel("Compagnia:"));
+        formPanel.add(airlineField);
+        formPanel.add(new JLabel("Origine:"));
+        formPanel.add(originField);
+        formPanel.add(new JLabel("Destinazione:"));
+        formPanel.add(destinationField);
+        formPanel.add(new JLabel("Orario:"));
+        formPanel.add(timeField);
+        formPanel.add(new JLabel("Stato:"));
+        formPanel.add(statusComboBox);
+        formPanel.add(new JLabel("Data (YYYY-MM-DD):"));
+        formPanel.add(dateField);
+        formPanel.add(new JLabel("Ritardo (min):"));
+        formPanel.add(delayField);
+        formPanel.add(new JLabel("Posti Totali:"));
+        formPanel.add(totalSeatsField);
+        formPanel.add(new JLabel("Posti Disponibili:"));
+        formPanel.add(availableSeatsField);
+
+        mainPanel.add(formPanel, BorderLayout.CENTER);
+
+        // Add buttons
+        JPanel buttonPanel = new JPanel();
+        JButton updateButton = new JButton("Aggiorna");
+        JButton cancelButton = new JButton("Annulla");
+
+        updateButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                try {
+                    String airline = airlineField.getText();
+                    String origin = originField.getText();
+                    String destination = destinationField.getText();
+                    String time = timeField.getText();
+                    StatoVolo status = (StatoVolo) statusComboBox.getSelectedItem();
+                    LocalDate date = LocalDate.parse(dateField.getText());
+                    int delay = Integer.parseInt(delayField.getText());
+                    int totalSeats = Integer.parseInt(totalSeatsField.getText());
+                    int availableSeats = Integer.parseInt(availableSeatsField.getText());
+
+                    // Validate input
+                    if (airline.isEmpty() || origin.isEmpty() || destination.isEmpty() || time.isEmpty()) {
+                        JOptionPane.showMessageDialog(dialog,
+                            "Tutti i campi sono obbligatori",
+                            "Errore", JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
+
+                    if (delay < 0) {
+                        JOptionPane.showMessageDialog(dialog,
+                            "Errore, inserire un valore di ritardo maggiore o uguale a zero",
+                            "Errore", JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
+
+                    if (availableSeats > totalSeats) {
+                        JOptionPane.showMessageDialog(dialog,
+                            "I posti disponibili non possono essere maggiori dei posti totali",
+                            "Errore", JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
+
+                    try {
+                        // Update flight
+                        flight.setCompagnia(airline);
+                        flight.setOrigine(origin);
+                        flight.setDestinazione(destination);
+                        flight.setOrarioPrevisto(time);
+                        flight.setStato(status);
+                        flight.setData(date);
+                        flight.setTempoRitardo(delay);
+                        flight.setPostiTotali(totalSeats);
+                        flight.setPostiDisponibili(availableSeats);
+
+                        // In a real application, we would update the database here
+                        controller.modificaVolo(flight);
+
+                        JOptionPane.showMessageDialog(dialog,
+                            "Volo aggiornato con successo",
+                            "Successo", JOptionPane.INFORMATION_MESSAGE);
+                    } catch (IllegalArgumentException ex) {
+                        JOptionPane.showMessageDialog(dialog,
+                            ex.getMessage(),
+                            "Errore di validazione", JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
+
+                    // Refresh the flights table
+                    refreshFlightsTable();
+
+                    // Close the dialog
+                    dialog.dispose();
+
+                    // Close the parent dialog and reopen it with updated flight details
+                    parentDialog.dispose();
+                    showFlightDetailsDialog(flight);
+
+                } catch (NumberFormatException ex) {
+                    JOptionPane.showMessageDialog(dialog,
+                        "Inserisci valori numerici validi per ritardo, posti totali e posti disponibili",
+                        "Errore", JOptionPane.ERROR_MESSAGE);
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(dialog,
+                        "Errore durante l'aggiornamento del volo: " + ex.getMessage(),
+                        "Errore", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+
+        cancelButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                dialog.dispose();
+            }
+        });
+
+        buttonPanel.add(updateButton);
+        buttonPanel.add(cancelButton);
+
+        mainPanel.add(buttonPanel, BorderLayout.SOUTH);
+
+        dialog.setContentPane(mainPanel);
+        dialog.setVisible(true);
+    }
+
+    /**
+     * Shows a dialog to manage all baggage for a flight collectively
+     * @param flight The flight
+     * @param bookingsTable The bookings table
+     */
+    private void showCollectiveBaggageManagementDialog(Volo flight, JTable bookingsTable) {
+        // Create a dialog
+        JDialog dialog = new JDialog(this, "Gestione Collettiva Bagagli: " + flight.getCodiceVolo(), true);
+        dialog.setSize(400, 300);
+        dialog.setLocationRelativeTo(this);
+
+        // Create main panel with BorderLayout
+        JPanel mainPanel = new JPanel(new BorderLayout());
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        // Create info panel
+        JPanel infoPanel = new JPanel(new GridLayout(0, 1, 10, 10));
+        infoPanel.setBorder(BorderFactory.createTitledBorder("Informazioni"));
+
+        infoPanel.add(new JLabel("Volo: " + flight.getCodiceVolo() + " - " + flight.getCompagnia()));
+        infoPanel.add(new JLabel("Tratta: " + flight.getOrigine() + " -> " + flight.getDestinazione()));
+        infoPanel.add(new JLabel("Data: " + flight.getData().toString()));
+
+        // Get total baggage count from the bookings table
+        int totalBaggage = 0;
+        for (int i = 0; i < bookingsTable.getRowCount(); i++) {
+            totalBaggage += Integer.parseInt(bookingsTable.getValueAt(i, 4).toString());
+        }
+
+        infoPanel.add(new JLabel("Totale Bagagli: " + totalBaggage));
+
+        mainPanel.add(infoPanel, BorderLayout.NORTH);
+
+        // Create action panel
+        JPanel actionPanel = new JPanel(new GridLayout(0, 1, 10, 10));
+        actionPanel.setBorder(BorderFactory.createTitledBorder("Azioni"));
+
+        JLabel statusLabel = new JLabel("Imposta stato per tutti i bagagli:");
+        JComboBox<StatoBagaglio> statusComboBox = new JComboBox<>(StatoBagaglio.values());
+
+        actionPanel.add(statusLabel);
+        actionPanel.add(statusComboBox);
+
+        mainPanel.add(actionPanel, BorderLayout.CENTER);
+
+        // Add buttons
+        JPanel buttonPanel = new JPanel();
+        JButton applyButton = new JButton("Applica");
+        JButton cancelButton = new JButton("Annulla");
+
+        applyButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                StatoBagaglio selectedStatus = (StatoBagaglio) statusComboBox.getSelectedItem();
+
+                // In a real application, we would update all baggage status in the database
+
+                JOptionPane.showMessageDialog(dialog,
+                    "Stato '" + selectedStatus + "' applicato a tutti i bagagli del volo " + flight.getCodiceVolo(),
+                    "Successo", JOptionPane.INFORMATION_MESSAGE);
+
+                dialog.dispose();
+            }
+        });
+
+        cancelButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                dialog.dispose();
+            }
+        });
+
+        buttonPanel.add(applyButton);
+        buttonPanel.add(cancelButton);
+
+        mainPanel.add(buttonPanel, BorderLayout.SOUTH);
+
+        dialog.setContentPane(mainPanel);
+        dialog.setVisible(true);
+    }
+
+    /**
      * Shows a dialog to modify a booking
      * @param ticketNumber The ticket number of the booking to modify
      * @param row The row in the table
@@ -1210,12 +1197,19 @@ public class AdminDashboard extends JFrame {
     private void showBookingDetailsDialog(String ticketNumber, int row, JTable bookingsTable) {
         // Create a dialog
         JDialog dialog = new JDialog(this, "Modifica Prenotazione: " + ticketNumber, true);
-        dialog.setSize(500, 400);
+        dialog.setSize(700, 500);
         dialog.setLocationRelativeTo(this);
 
         // Create main panel with BorderLayout
         JPanel mainPanel = new JPanel(new BorderLayout());
         mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        // Create tabbed pane for different sections
+        JTabbedPane dialogTabs = new JTabbedPane();
+
+        // Create booking details panel
+        JPanel bookingPanel = new JPanel(new BorderLayout());
+        bookingPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
         // Create form panel
         JPanel formPanel = new JPanel(new GridLayout(0, 2, 10, 10));
@@ -1230,8 +1224,16 @@ public class AdminDashboard extends JFrame {
         // Create form fields
         JTextField nameField = new JTextField(passengerName);
         JTextField seatField = new JTextField(seat);
-        JComboBox<String> statusComboBox = new JComboBox<>(new String[]{"Confermato", "In Attesa", "Cancellato"});
-        statusComboBox.setSelectedItem(status);
+        JComboBox<StatoPrenotazione> statusComboBox = new JComboBox<>(StatoPrenotazione.values());
+
+        // Set selected status based on the string value
+        if (status.equalsIgnoreCase("Confermato")) {
+            statusComboBox.setSelectedItem(StatoPrenotazione.confermato);
+        } else if (status.equalsIgnoreCase("In Attesa")) {
+            statusComboBox.setSelectedItem(StatoPrenotazione.inAttesa);
+        } else if (status.equalsIgnoreCase("Cancellato")) {
+            statusComboBox.setSelectedItem(StatoPrenotazione.cancellato);
+        }
 
         formPanel.add(new JLabel("Numero Biglietto:"));
         formPanel.add(new JLabel(ticketNumber));
@@ -1244,34 +1246,205 @@ public class AdminDashboard extends JFrame {
         formPanel.add(new JLabel("Bagagli:"));
         formPanel.add(new JLabel(baggageCount));
 
-        mainPanel.add(formPanel, BorderLayout.CENTER);
+        bookingPanel.add(formPanel, BorderLayout.CENTER);
+
+        // Add save button for booking details
+        JPanel bookingSavePanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JButton saveBookingButton = new JButton("Salva Prenotazione");
+        saveBookingButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                // Update the booking in the table
+                bookingsTable.setValueAt(nameField.getText(), row, 1);
+                bookingsTable.setValueAt(seatField.getText(), row, 2);
+
+                // Convert enum to display string
+                String statusDisplay;
+                StatoPrenotazione selectedStatus = (StatoPrenotazione) statusComboBox.getSelectedItem();
+                if (selectedStatus == StatoPrenotazione.confermato) {
+                    statusDisplay = "Confermato";
+                } else if (selectedStatus == StatoPrenotazione.inAttesa) {
+                    statusDisplay = "In Attesa";
+                } else {
+                    statusDisplay = "Cancellato";
+                }
+
+                bookingsTable.setValueAt(statusDisplay, row, 3);
+
+                controller.aggiornaPrenotazione(selectedStatus, ticketNumber);
+
+                JOptionPane.showMessageDialog(dialog,
+                    "Prenotazione aggiornata con successo",
+                    "Successo", JOptionPane.INFORMATION_MESSAGE);
+            }
+        });
+        bookingSavePanel.add(saveBookingButton);
+        bookingPanel.add(bookingSavePanel, BorderLayout.SOUTH);
 
         // Create baggage panel
         JPanel baggagePanel = new JPanel(new BorderLayout());
-        baggagePanel.setBorder(BorderFactory.createTitledBorder("Bagagli"));
+        baggagePanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
+        // Create baggage table
         DefaultTableModel baggageModel = new DefaultTableModel() {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return column == 1; // Only status column is editable
+            }
+        };
+
+        baggageModel.addColumn("Codice Bagaglio");
+        baggageModel.addColumn("Stato");
+        baggageModel.addColumn("Azioni");
+
+        // In a real application, we would get the baggage for this booking from the database
+        // For now, we'll just add some example baggage
+        int numBaggage = Integer.parseInt(baggageCount);
+        for (int i = 0; i < numBaggage; i++) {
+            baggageModel.addRow(new Object[]{"BAG" + ticketNumber + "-" + (i + 1), StatoBagaglio.caricato, "Modifica"});
+        }
+
+        JTable baggageTable = new JTable(baggageModel);
+
+        // Create a combo box editor for the status column
+        JComboBox<StatoBagaglio> statusEditor = new JComboBox<>(StatoBagaglio.values());
+        baggageTable.getColumnModel().getColumn(1).setCellEditor(new DefaultCellEditor(statusEditor));
+
+        // Add mouse listener for the action column
+        baggageTable.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                int row = baggageTable.rowAtPoint(evt.getPoint());
+                int col = baggageTable.columnAtPoint(evt.getPoint());
+
+                if (row >= 0 && col == 2) { // Action column
+                    String baggageCode = (String) baggageTable.getValueAt(row, 0);
+                    StatoBagaglio currentStatus = (StatoBagaglio) baggageTable.getValueAt(row, 1);
+                    showBaggageStatusDialog(baggageCode, currentStatus, row, baggageTable);
+                }
+            }
+        });
+
+        JScrollPane baggageScrollPane = new JScrollPane(baggageTable);
+        baggageScrollPane.setBorder(BorderFactory.createTitledBorder("Bagagli"));
+        baggagePanel.add(baggageScrollPane, BorderLayout.CENTER);
+
+        // Add save button for baggage
+        JPanel baggageSavePanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JButton saveBaggageButton = new JButton("Salva Modifiche Bagagli");
+        saveBaggageButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                // In a real application, we would update the database here
+
+                JOptionPane.showMessageDialog(dialog,
+                    "Stato dei bagagli aggiornato con successo",
+                    "Successo", JOptionPane.INFORMATION_MESSAGE);
+            }
+        });
+        baggageSavePanel.add(saveBaggageButton);
+        baggagePanel.add(baggageSavePanel, BorderLayout.SOUTH);
+
+        // Create lost baggage panel
+        JPanel lostBaggagePanel = new JPanel(new BorderLayout());
+        lostBaggagePanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        // Create lost baggage table
+        DefaultTableModel lostBaggageModel = new DefaultTableModel() {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return false; // Make all cells non-editable
             }
         };
 
-        baggageModel.addColumn("Codice Bagaglio");
-        baggageModel.addColumn("Stato");
+        lostBaggageModel.addColumn("Codice Bagaglio");
+        lostBaggageModel.addColumn("Data Smarrimento");
+        lostBaggageModel.addColumn("Stato");
+        lostBaggageModel.addColumn("Azioni");
 
-        // In a real application, we would get the baggage for this booking from the database
-        // For now, we'll just add some example baggage
-        int numBaggage = Integer.parseInt(baggageCount);
-        for (int i = 0; i < numBaggage; i++) {
-            baggageModel.addRow(new Object[]{"BAG" + ticketNumber + "-" + (i + 1), "caricato"});
+        // Add example lost baggage (in a real app, we would get this from the database)
+        // Only add if there are baggage
+        if (numBaggage > 0) {
+            lostBaggageModel.addRow(new Object[]{"BAG" + ticketNumber + "-1", "2023-06-15", StatoBagaglio.smarrito, "Modifica"});
         }
 
-        JTable baggageTable = new JTable(baggageModel);
-        JScrollPane baggageScrollPane = new JScrollPane(baggageTable);
-        baggagePanel.add(baggageScrollPane, BorderLayout.CENTER);
+        JTable lostBaggageTable = new JTable(lostBaggageModel);
 
-        mainPanel.add(baggagePanel, BorderLayout.SOUTH);
+        // Add mouse listener for the action column
+        lostBaggageTable.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                int row = lostBaggageTable.rowAtPoint(evt.getPoint());
+                int col = lostBaggageTable.columnAtPoint(evt.getPoint());
+
+                if (row >= 0 && col == 3) { // Action column
+                    String baggageCode = (String) lostBaggageTable.getValueAt(row, 0);
+                    showLostBaggageStatusDialog(baggageCode, row, lostBaggageTable);
+                }
+            }
+        });
+
+        JScrollPane lostBaggageScrollPane = new JScrollPane(lostBaggageTable);
+        lostBaggageScrollPane.setBorder(BorderFactory.createTitledBorder("Bagagli Smarriti"));
+        lostBaggagePanel.add(lostBaggageScrollPane, BorderLayout.CENTER);
+
+        // Add tabs
+        dialogTabs.addTab("Prenotazione", bookingPanel);
+        dialogTabs.addTab("Bagagli", baggagePanel);
+        dialogTabs.addTab("Bagagli Smarriti", lostBaggagePanel);
+
+        mainPanel.add(dialogTabs, BorderLayout.CENTER);
+
+        // Add close button
+        JPanel buttonPanel = new JPanel();
+        JButton closeButton = new JButton("Chiudi");
+        closeButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                dialog.dispose();
+            }
+        });
+
+        buttonPanel.add(closeButton);
+        mainPanel.add(buttonPanel, BorderLayout.SOUTH);
+
+        dialog.setContentPane(mainPanel);
+        dialog.setVisible(true);
+    }
+
+    /**
+     * Shows a dialog to modify baggage status
+     * @param baggageCode The baggage code
+     * @param currentStatus The current status
+     * @param row The row in the table
+     * @param baggageTable The baggage table
+     */
+    private void showBaggageStatusDialog(String baggageCode, StatoBagaglio currentStatus, int row, JTable baggageTable) {
+        // Create a dialog
+        JDialog dialog = new JDialog(this, "Modifica Stato Bagaglio: " + baggageCode, true);
+        dialog.setSize(400, 200);
+        dialog.setLocationRelativeTo(this);
+
+        // Create main panel with BorderLayout
+        JPanel mainPanel = new JPanel(new BorderLayout());
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        // Create form panel
+        JPanel formPanel = new JPanel(new GridLayout(0, 2, 10, 10));
+
+        JLabel codeLabel = new JLabel("Codice Bagaglio:");
+        JLabel codeValueLabel = new JLabel(baggageCode);
+
+        JLabel statusLabel = new JLabel("Stato:");
+        JComboBox<StatoBagaglio> statusComboBox = new JComboBox<>(StatoBagaglio.values());
+        statusComboBox.setSelectedItem(currentStatus);
+
+        formPanel.add(codeLabel);
+        formPanel.add(codeValueLabel);
+        formPanel.add(statusLabel);
+        formPanel.add(statusComboBox);
+
+        mainPanel.add(formPanel, BorderLayout.CENTER);
 
         // Add buttons
         JPanel buttonPanel = new JPanel();
@@ -1281,13 +1454,15 @@ public class AdminDashboard extends JFrame {
         saveButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                // Update the booking in the table
-                bookingsTable.setValueAt(nameField.getText(), row, 1);
-                bookingsTable.setValueAt(seatField.getText(), row, 2);
-                bookingsTable.setValueAt(statusComboBox.getSelectedItem(), row, 3);
+                StatoBagaglio selectedStatus = (StatoBagaglio) statusComboBox.getSelectedItem();
+
+                // Update the baggage status in the table
+                baggageTable.setValueAt(selectedStatus, row, 1);
+
+                // In a real application, we would update the database here
 
                 JOptionPane.showMessageDialog(dialog,
-                    "Prenotazione aggiornata con successo",
+                    "Stato del bagaglio aggiornato con successo",
                     "Successo", JOptionPane.INFORMATION_MESSAGE);
 
                 dialog.dispose();
@@ -1304,7 +1479,89 @@ public class AdminDashboard extends JFrame {
         buttonPanel.add(saveButton);
         buttonPanel.add(cancelButton);
 
-        mainPanel.add(buttonPanel, BorderLayout.NORTH);
+        mainPanel.add(buttonPanel, BorderLayout.SOUTH);
+
+        dialog.setContentPane(mainPanel);
+        dialog.setVisible(true);
+    }
+
+    /**
+     * Shows a dialog to modify lost baggage status
+     * @param baggageCode The baggage code
+     * @param row The row in the table
+     * @param lostBaggageTable The lost baggage table
+     */
+    private void showLostBaggageStatusDialog(String baggageCode, int row, JTable lostBaggageTable) {
+        // Create a dialog
+        JDialog dialog = new JDialog(this, "Modifica Stato Bagaglio Smarrito: " + baggageCode, true);
+        dialog.setSize(400, 250);
+        dialog.setLocationRelativeTo(this);
+
+        // Create main panel with BorderLayout
+        JPanel mainPanel = new JPanel(new BorderLayout());
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        // Create form panel
+        JPanel formPanel = new JPanel(new GridLayout(0, 2, 10, 10));
+
+        JLabel codeLabel = new JLabel("Codice Bagaglio:");
+        JLabel codeValueLabel = new JLabel(baggageCode);
+
+        JLabel dateLabel = new JLabel("Data Smarrimento:");
+        JLabel dateValueLabel = new JLabel((String) lostBaggageTable.getValueAt(row, 1));
+
+        JLabel statusLabel = new JLabel("Stato:");
+        JComboBox<StatoBagaglio> statusComboBox = new JComboBox<>(StatoBagaglio.values());
+        statusComboBox.setSelectedItem(lostBaggageTable.getValueAt(row, 2));
+
+        JLabel notesLabel = new JLabel("Note:");
+        JTextField notesField = new JTextField();
+
+        formPanel.add(codeLabel);
+        formPanel.add(codeValueLabel);
+        formPanel.add(dateLabel);
+        formPanel.add(dateValueLabel);
+        formPanel.add(statusLabel);
+        formPanel.add(statusComboBox);
+        formPanel.add(notesLabel);
+        formPanel.add(notesField);
+
+        mainPanel.add(formPanel, BorderLayout.CENTER);
+
+        // Add buttons
+        JPanel buttonPanel = new JPanel();
+        JButton saveButton = new JButton("Salva");
+        JButton cancelButton = new JButton("Annulla");
+
+        saveButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                StatoBagaglio selectedStatus = (StatoBagaglio) statusComboBox.getSelectedItem();
+
+                // Update the baggage status in the table
+                lostBaggageTable.setValueAt(selectedStatus, row, 2);
+
+                // In a real application, we would update the database here
+
+                JOptionPane.showMessageDialog(dialog,
+                    "Stato del bagaglio smarrito aggiornato con successo",
+                    "Successo", JOptionPane.INFORMATION_MESSAGE);
+
+                dialog.dispose();
+            }
+        });
+
+        cancelButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                dialog.dispose();
+            }
+        });
+
+        buttonPanel.add(saveButton);
+        buttonPanel.add(cancelButton);
+
+        mainPanel.add(buttonPanel, BorderLayout.SOUTH);
 
         dialog.setContentPane(mainPanel);
         dialog.setVisible(true);

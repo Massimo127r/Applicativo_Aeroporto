@@ -2,7 +2,6 @@ package DAO;
 
 import model.*;
 
-import java.time.LocalDate;
 import java.util.List;
 
 public interface PostgresDAO {
@@ -29,7 +28,7 @@ public interface PostgresDAO {
     Prenotazione getPrenotazioneByNumeroBiglietto(String numeroBiglietto);
     List<Prenotazione> getPrenotazioniByPasseggero(String nome, String cognome);
     boolean insertPrenotazione(Prenotazione prenotazione, String codiceVolo);
-    boolean updatePrenotazione(Prenotazione prenotazione);
+    boolean updatePrenotazione(StatoPrenotazione prenotazione, String numeroBiglietto);
 
     // Metodi per Bagaglio
     List<Bagaglio> getAllBagagli();

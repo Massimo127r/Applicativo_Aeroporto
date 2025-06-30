@@ -83,8 +83,8 @@ public class Controller {
         return dao.insertPrenotazione(prenotazione, codiceVolo);
     }
 
-    public boolean aggiornaPrenotazione(Prenotazione prenotazione) {
-        return dao.updatePrenotazione(prenotazione);
+    public boolean aggiornaPrenotazione(StatoPrenotazione prenotazione, String numeroBiglietto) {
+        return dao.updatePrenotazione(prenotazione, numeroBiglietto);
     }
 
     // Metodi per la gestione dei bagagli
