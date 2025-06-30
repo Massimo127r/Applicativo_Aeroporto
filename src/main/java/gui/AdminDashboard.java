@@ -578,10 +578,8 @@ public class AdminDashboard extends JFrame {
 
         // Add some test data for lost baggage
         for (Bagaglio bagaglio : baggages) {
-            if(bagaglio.getStato() == StatoBagaglio.smarrito){
                 model.addRow(new Object[]{bagaglio.getCodice(), bagaglio.getStato(),  "Modifica"});
 
-            }
         }
 
 
@@ -629,8 +627,10 @@ public class AdminDashboard extends JFrame {
         DefaultTableModel model = (DefaultTableModel) lostBaggageTable.getModel();
         model.setRowCount(0);
 
-        // In a real application, this would query the database for lost baggage
-        // For now, we'll just add some test data
+        baggages = controller.getAllBagagli();
+        if (baggages == null) {
+            baggages = new ArrayList<>();
+        }
         for (Bagaglio bagaglio : baggages) {
             if (bagaglio.getStato() == StatoBagaglio.smarrito) {
                 model.addRow(new Object[]{
@@ -690,9 +690,18 @@ public class AdminDashboard extends JFrame {
                     // Update the table
                     lostBaggageTable.setValueAt(newStatus, row, 1);
 
-                    JOptionPane.showMessageDialog(this,
-                        "Stato del bagaglio aggiornato con successo",
-                        "Successo", JOptionPane.INFORMATION_MESSAGE);
+                    // Update the database using the controller
+                    boolean success = controller.aggiornaBagaglio(bagaglio);
+
+                    if (success) {
+                        JOptionPane.showMessageDialog(this,
+                            "Stato del bagaglio aggiornato con successo",
+                            "Successo", JOptionPane.INFORMATION_MESSAGE);
+                    } else {
+                        JOptionPane.showMessageDialog(this,
+                            "Errore durante l'aggiornamento dello stato del bagaglio",
+                            "Errore", JOptionPane.ERROR_MESSAGE);
+                    }
 
                     // If the status is no longer "smarrito", remove only this row from the table
                     if (newStatus != StatoBagaglio.smarrito) {
@@ -892,9 +901,12 @@ public class AdminDashboard extends JFrame {
 
         // In a real application, we would get the bookings for this flight from the database
         // For now, we'll just add some example bookings
-        model.addRow(new Object[]{"TKT1001", "Mario Rossi", "12A", "Confermato", "2", "Modifica"});
-        model.addRow(new Object[]{"TKT1002", "Luigi Verdi", "14B", "In Attesa", "1", "Modifica"});
-        model.addRow(new Object[]{"TKT1003", "Anna Bianchi", "16C", "Confermato", "0", "Modifica"});
+        List<Prenotazione> prenotazioni =  controller.getPrenotazioniByVolo(flight);
+        for( Prenotazione p : prenotazioni){
+            model.addRow(new Object[]{p.getNumeroBiglietto(), p.getPasseggero().getNome() + " " + p.getPasseggero().getCognome(), p.getPosto(), p.getStato(), p.getBagagli().size(), "Modifica"});
+
+        }
+
 
         JTable bookingsTable = new JTable(model);
 
@@ -1162,11 +1174,19 @@ public class AdminDashboard extends JFrame {
             public void actionPerformed(ActionEvent e) {
                 StatoBagaglio selectedStatus = (StatoBagaglio) statusComboBox.getSelectedItem();
 
-                // In a real application, we would update all baggage status in the database
+                    boolean success= controller.aggiornatAllBagagli(flight.getCodiceVolo(), selectedStatus);
 
-                JOptionPane.showMessageDialog(dialog,
-                    "Stato '" + selectedStatus + "' applicato a tutti i bagagli del volo " + flight.getCodiceVolo(),
-                    "Successo", JOptionPane.INFORMATION_MESSAGE);
+
+                if (success) {
+                    JOptionPane.showMessageDialog(dialog,
+                            "Stato '" + selectedStatus + "' applicato a tutti i bagagli del volo " + flight.getCodiceVolo(),
+                            "Successo", JOptionPane.INFORMATION_MESSAGE);
+                } else {
+                    JOptionPane.showMessageDialog(dialog,
+                            "Errore durante l'aggiornamento dello stato dei bagagli",
+                            "Errore", JOptionPane.ERROR_MESSAGE);
+                }
+
 
                 dialog.dispose();
             }
@@ -1187,6 +1207,7 @@ public class AdminDashboard extends JFrame {
         dialog.setContentPane(mainPanel);
         dialog.setVisible(true);
     }
+
 
     /**
      * Shows a dialog to modify a booking
@@ -1218,8 +1239,8 @@ public class AdminDashboard extends JFrame {
         // Get booking details from the table
         String passengerName = (String) bookingsTable.getValueAt(row, 1);
         String seat = (String) bookingsTable.getValueAt(row, 2);
-        String status = (String) bookingsTable.getValueAt(row, 3);
-        String baggageCount = (String) bookingsTable.getValueAt(row, 4);
+        String status = (String) bookingsTable.getValueAt(row, 3).toString();
+        String baggageCount = (String) bookingsTable.getValueAt(row, 4).toString();
 
         // Create form fields
         JTextField nameField = new JTextField(passengerName);
@@ -1227,9 +1248,9 @@ public class AdminDashboard extends JFrame {
         JComboBox<StatoPrenotazione> statusComboBox = new JComboBox<>(StatoPrenotazione.values());
 
         // Set selected status based on the string value
-        if (status.equalsIgnoreCase("Confermato")) {
-            statusComboBox.setSelectedItem(StatoPrenotazione.confermato);
-        } else if (status.equalsIgnoreCase("In Attesa")) {
+        if (status.equalsIgnoreCase("Confermata")) {
+            statusComboBox.setSelectedItem(StatoPrenotazione.confermata);
+        } else if (status.equalsIgnoreCase("InAttesa")) {
             statusComboBox.setSelectedItem(StatoPrenotazione.inAttesa);
         } else if (status.equalsIgnoreCase("Cancellato")) {
             statusComboBox.setSelectedItem(StatoPrenotazione.cancellato);
@@ -1238,9 +1259,9 @@ public class AdminDashboard extends JFrame {
         formPanel.add(new JLabel("Numero Biglietto:"));
         formPanel.add(new JLabel(ticketNumber));
         formPanel.add(new JLabel("Passeggero:"));
-        formPanel.add(nameField);
+        formPanel.add(new JLabel(passengerName));
         formPanel.add(new JLabel("Posto:"));
-        formPanel.add(seatField);
+        formPanel.add(new JLabel(seat));
         formPanel.add(new JLabel("Stato:"));
         formPanel.add(statusComboBox);
         formPanel.add(new JLabel("Bagagli:"));
@@ -1261,10 +1282,10 @@ public class AdminDashboard extends JFrame {
                 // Convert enum to display string
                 String statusDisplay;
                 StatoPrenotazione selectedStatus = (StatoPrenotazione) statusComboBox.getSelectedItem();
-                if (selectedStatus == StatoPrenotazione.confermato) {
-                    statusDisplay = "Confermato";
+                if (selectedStatus == StatoPrenotazione.confermata) {
+                    statusDisplay = "Confermata";
                 } else if (selectedStatus == StatoPrenotazione.inAttesa) {
-                    statusDisplay = "In Attesa";
+                    statusDisplay = "InAttesa";
                 } else {
                     statusDisplay = "Cancellato";
                 }
@@ -1299,9 +1320,10 @@ public class AdminDashboard extends JFrame {
 
         // In a real application, we would get the baggage for this booking from the database
         // For now, we'll just add some example baggage
-        int numBaggage = Integer.parseInt(baggageCount);
-        for (int i = 0; i < numBaggage; i++) {
-            baggageModel.addRow(new Object[]{"BAG" + ticketNumber + "-" + (i + 1), StatoBagaglio.caricato, "Modifica"});
+        List<Bagaglio> bagagli  = controller.getBagagliByPrenotazione(ticketNumber);
+
+        for (Bagaglio b : bagagli) {
+            baggageModel.addRow(new Object[]{b.getCodice(), b.getStato(), "Modifica"});
         }
 
         JTable baggageTable = new JTable(baggageModel);
@@ -1320,7 +1342,8 @@ public class AdminDashboard extends JFrame {
                 if (row >= 0 && col == 2) { // Action column
                     String baggageCode = (String) baggageTable.getValueAt(row, 0);
                     StatoBagaglio currentStatus = (StatoBagaglio) baggageTable.getValueAt(row, 1);
-                    showBaggageStatusDialog(baggageCode, currentStatus, row, baggageTable);
+                    Bagaglio bagaglio = new Bagaglio(baggageCode, currentStatus);
+                    showBaggageStatusDialog(bagaglio, row, baggageTable);
                 }
             }
         });
@@ -1330,7 +1353,7 @@ public class AdminDashboard extends JFrame {
         baggagePanel.add(baggageScrollPane, BorderLayout.CENTER);
 
         // Add save button for baggage
-        JPanel baggageSavePanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        /*JPanel baggageSavePanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         JButton saveBaggageButton = new JButton("Salva Modifiche Bagagli");
         saveBaggageButton.addActionListener(new ActionListener() {
             @Override
@@ -1342,56 +1365,15 @@ public class AdminDashboard extends JFrame {
                     "Successo", JOptionPane.INFORMATION_MESSAGE);
             }
         });
+
+
         baggageSavePanel.add(saveBaggageButton);
         baggagePanel.add(baggageSavePanel, BorderLayout.SOUTH);
-
-        // Create lost baggage panel
-        JPanel lostBaggagePanel = new JPanel(new BorderLayout());
-        lostBaggagePanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-
-        // Create lost baggage table
-        DefaultTableModel lostBaggageModel = new DefaultTableModel() {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false; // Make all cells non-editable
-            }
-        };
-
-        lostBaggageModel.addColumn("Codice Bagaglio");
-        lostBaggageModel.addColumn("Data Smarrimento");
-        lostBaggageModel.addColumn("Stato");
-        lostBaggageModel.addColumn("Azioni");
-
-        // Add example lost baggage (in a real app, we would get this from the database)
-        // Only add if there are baggage
-        if (numBaggage > 0) {
-            lostBaggageModel.addRow(new Object[]{"BAG" + ticketNumber + "-1", "2023-06-15", StatoBagaglio.smarrito, "Modifica"});
-        }
-
-        JTable lostBaggageTable = new JTable(lostBaggageModel);
-
-        // Add mouse listener for the action column
-        lostBaggageTable.addMouseListener(new java.awt.event.MouseAdapter() {
-            @Override
-            public void mouseClicked(java.awt.event.MouseEvent evt) {
-                int row = lostBaggageTable.rowAtPoint(evt.getPoint());
-                int col = lostBaggageTable.columnAtPoint(evt.getPoint());
-
-                if (row >= 0 && col == 3) { // Action column
-                    String baggageCode = (String) lostBaggageTable.getValueAt(row, 0);
-                    showLostBaggageStatusDialog(baggageCode, row, lostBaggageTable);
-                }
-            }
-        });
-
-        JScrollPane lostBaggageScrollPane = new JScrollPane(lostBaggageTable);
-        lostBaggageScrollPane.setBorder(BorderFactory.createTitledBorder("Bagagli Smarriti"));
-        lostBaggagePanel.add(lostBaggageScrollPane, BorderLayout.CENTER);
+ */
 
         // Add tabs
         dialogTabs.addTab("Prenotazione", bookingPanel);
         dialogTabs.addTab("Bagagli", baggagePanel);
-        dialogTabs.addTab("Bagagli Smarriti", lostBaggagePanel);
 
         mainPanel.add(dialogTabs, BorderLayout.CENTER);
 
@@ -1414,14 +1396,13 @@ public class AdminDashboard extends JFrame {
 
     /**
      * Shows a dialog to modify baggage status
-     * @param baggageCode The baggage code
-     * @param currentStatus The current status
+     * @param bagaglio The baggage object
      * @param row The row in the table
      * @param baggageTable The baggage table
      */
-    private void showBaggageStatusDialog(String baggageCode, StatoBagaglio currentStatus, int row, JTable baggageTable) {
+    private void showBaggageStatusDialog(Bagaglio bagaglio, int row, JTable baggageTable) {
         // Create a dialog
-        JDialog dialog = new JDialog(this, "Modifica Stato Bagaglio: " + baggageCode, true);
+        JDialog dialog = new JDialog(this, "Modifica Stato Bagaglio: " + bagaglio.getCodice(), true);
         dialog.setSize(400, 200);
         dialog.setLocationRelativeTo(this);
 
@@ -1433,11 +1414,11 @@ public class AdminDashboard extends JFrame {
         JPanel formPanel = new JPanel(new GridLayout(0, 2, 10, 10));
 
         JLabel codeLabel = new JLabel("Codice Bagaglio:");
-        JLabel codeValueLabel = new JLabel(baggageCode);
+        JLabel codeValueLabel = new JLabel(bagaglio.getCodice());
 
         JLabel statusLabel = new JLabel("Stato:");
         JComboBox<StatoBagaglio> statusComboBox = new JComboBox<>(StatoBagaglio.values());
-        statusComboBox.setSelectedItem(currentStatus);
+        statusComboBox.setSelectedItem(bagaglio.getStato());
 
         formPanel.add(codeLabel);
         formPanel.add(codeValueLabel);
@@ -1459,11 +1440,21 @@ public class AdminDashboard extends JFrame {
                 // Update the baggage status in the table
                 baggageTable.setValueAt(selectedStatus, row, 1);
 
-                // In a real application, we would update the database here
+                // Update the baggage status in the object
+                bagaglio.setStato(selectedStatus);
 
-                JOptionPane.showMessageDialog(dialog,
-                    "Stato del bagaglio aggiornato con successo",
-                    "Successo", JOptionPane.INFORMATION_MESSAGE);
+                // Update the database using the controller
+                boolean success = controller.aggiornaBagaglio(bagaglio);
+
+                if (success) {
+                    JOptionPane.showMessageDialog(dialog,
+                        "Stato del bagaglio aggiornato con successo",
+                        "Successo", JOptionPane.INFORMATION_MESSAGE);
+                } else {
+                    JOptionPane.showMessageDialog(dialog,
+                        "Errore durante l'aggiornamento dello stato del bagaglio",
+                        "Errore", JOptionPane.ERROR_MESSAGE);
+                }
 
                 dialog.dispose();
             }
@@ -1541,11 +1532,29 @@ public class AdminDashboard extends JFrame {
                 // Update the baggage status in the table
                 lostBaggageTable.setValueAt(selectedStatus, row, 2);
 
-                // In a real application, we would update the database here
+                // Find the baggage object using the baggageCode
+                Bagaglio bagaglio = controller.getBagaglioByCodice(baggageCode);
+                if (bagaglio != null) {
+                    // Update the baggage status in the object
+                    bagaglio.setStato(selectedStatus);
 
-                JOptionPane.showMessageDialog(dialog,
-                    "Stato del bagaglio smarrito aggiornato con successo",
-                    "Successo", JOptionPane.INFORMATION_MESSAGE);
+                    // Update the database using the controller
+                    boolean success = controller.aggiornaBagaglio(bagaglio);
+
+                    if (success) {
+                        JOptionPane.showMessageDialog(dialog,
+                            "Stato del bagaglio smarrito aggiornato con successo",
+                            "Successo", JOptionPane.INFORMATION_MESSAGE);
+                    } else {
+                        JOptionPane.showMessageDialog(dialog,
+                            "Errore durante l'aggiornamento dello stato del bagaglio",
+                            "Errore", JOptionPane.ERROR_MESSAGE);
+                    }
+                } else {
+                    JOptionPane.showMessageDialog(dialog,
+                        "Errore: Bagaglio non trovato",
+                        "Errore", JOptionPane.ERROR_MESSAGE);
+                }
 
                 dialog.dispose();
             }

@@ -27,6 +27,7 @@ public interface PostgresDAO {
     List<Prenotazione> getAllPrenotazioni();
     Prenotazione getPrenotazioneByNumeroBiglietto(String numeroBiglietto);
     List<Prenotazione> getPrenotazioniByPasseggero(String nome, String cognome);
+     List<Prenotazione> getPrenotazioniByVolo(Volo volo);
     boolean insertPrenotazione(Prenotazione prenotazione, String codiceVolo);
     boolean updatePrenotazione(StatoPrenotazione prenotazione, String numeroBiglietto);
 
@@ -36,5 +37,7 @@ public interface PostgresDAO {
     Bagaglio getBagaglioByCodice(String codice);
     boolean insertBagaglio(Bagaglio bagaglio, String numeroBiglietto);
     boolean updateBagaglio(Bagaglio bagaglio);
-    List<Bagaglio> getBagagliSmarriti();
+    boolean updateBagagliByVolo(String codiceVolo, StatoBagaglio nuovoStato) ;
+
+        List<Bagaglio> getBagagliSmarriti();
 }

@@ -228,17 +228,16 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
     // Metodi per Prenotazione
     @Override
     public List<Prenotazione> getAllPrenotazioni() {
-        Map<String, Prenotazione> prenotazioniMap = new HashMap<>();
+        List<Prenotazione> prenotazioniList = new ArrayList<>();
 
-        // Query per ottenere prenotazioni, passeggeri e bagagli in un'unica query
         String query = "SELECT p.numero_biglietto, p.posto, p.stato as stato_prenotazione, " +
-                       "pa.nome, pa.cognome, pa.n_documento, " +
-                       "b.codice as codice_bagaglio, b.stato as stato_bagaglio " +
-                       "FROM prenotazioni p " +
-                       "JOIN passeggeri pa ON p.passeggero_id = pa.n_documento " +
-                       "LEFT JOIN prenotazioni_bagagli pb ON p.numero_biglietto = pb.numero_biglietto " +
-                       "LEFT JOIN bagagli b ON pb.codice_bagaglio = b.codice " +
-                       "ORDER BY p.numero_biglietto";
+                "pa.nome, pa.cognome, pa.n_documento, " +
+                "b.codice as codice_bagaglio, b.stato as stato_bagaglio " +
+                "FROM prenotazioni p " +
+                "JOIN passeggeri pa ON p.passeggero_id = pa.n_documento " +
+                "LEFT JOIN prenotazioni_bagagli pb ON p.numero_biglietto = pb.numero_biglietto " +
+                "LEFT JOIN bagagli b ON pb.codice_bagaglio = b.codice " +
+                "ORDER BY p.numero_biglietto";
 
         try (Connection conn = ConnessioneDatabase.getConnection();
              Statement stmt = conn.createStatement();
@@ -247,8 +246,17 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
             while (rs.next()) {
                 String numeroBiglietto = rs.getString("numero_biglietto");
 
-                // Se la prenotazione non è ancora nella mappa, creala
-                if (!prenotazioniMap.containsKey(numeroBiglietto)) {
+                // Cerco in lista una prenotazione già creata per questo biglietto
+                Prenotazione prenotazione = null;
+                for (Prenotazione p : prenotazioniList) {
+                    if (p.getNumeroBiglietto().equals(numeroBiglietto)) {
+                        prenotazione = p;
+                        break;
+                    }
+                }
+
+                // Se non esiste, la creo e la aggiungo
+                if (prenotazione == null) {
                     String posto = rs.getString("posto");
                     StatoPrenotazione stato = StatoPrenotazione.valueOf(rs.getString("stato_prenotazione"));
                     String nDocumento = rs.getString("n_documento");
@@ -256,13 +264,13 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
                     String cognome = rs.getString("cognome");
 
                     Passeggero passeggero = new Passeggero(nome, cognome, nDocumento);
-                    Prenotazione prenotazione = new Prenotazione(numeroBiglietto, posto, stato, passeggero);
+                    prenotazione = new Prenotazione(numeroBiglietto, posto, stato, passeggero);
                     prenotazione.setBagagli(new ArrayList<>());
 
-                    prenotazioniMap.put(numeroBiglietto, prenotazione);
+                    prenotazioniList.add(prenotazione);
                 }
 
-                // Aggiungi il bagaglio alla prenotazione se presente
+                // Aggiungo eventuale bagaglio
                 String codiceBagaglio = rs.getString("codice_bagaglio");
                 if (codiceBagaglio != null) {
                     String statoBagaglioStr = rs.getString("stato_bagaglio");
@@ -270,8 +278,7 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
                         StatoBagaglio statoBagaglio = StatoBagaglio.valueOf(statoBagaglioStr);
                         Bagaglio bagaglio = new Bagaglio(codiceBagaglio, statoBagaglio);
 
-                        // Aggiungi il bagaglio alla lista dei bagagli della prenotazione
-                        prenotazioniMap.get(numeroBiglietto).getBagagli().add(bagaglio);
+                        prenotazione.getBagagli().add(bagaglio);
                     }
                 }
             }
@@ -279,8 +286,76 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
             System.err.println("Errore durante il recupero delle prenotazioni: " + e.getMessage());
         }
 
-        // Converti la mappa in una lista
-        return new ArrayList<>(prenotazioniMap.values());
+        return prenotazioniList;
+    }
+
+    @Override
+    public List<Prenotazione> getPrenotazioniByVolo(Volo volo) {
+        List<Prenotazione> prenotazioniList = new ArrayList<>();
+
+        String sql = "SELECT p.numerobiglietto, p.postoassegnato, p.stato AS stato_prenotazione, " +
+                "pa.nome, pa.cognome, pa.numerodocumento, " +
+                "b.codice AS codice_bagaglio, b.stato AS stato_bagaglio " +
+                "FROM prenotazione p " +
+                "JOIN passeggero pa ON p.idpasseggero = pa.id " +
+                "LEFT JOIN bagaglio b ON b.idprenotazione = p.id " +
+                "WHERE p.codicevolo = ? " +
+                "ORDER BY p.numerobiglietto";
+
+        try (Connection conn = ConnessioneDatabase.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            // Imposto il parametro sul codice del volo
+            ps.setString(1, volo.getCodiceVolo());
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String numeroBiglietto = rs.getString("numerobiglietto");
+
+                    // Cerco in lista una prenotazione già creata per questo biglietto
+                    Prenotazione prenotazione = null;
+                    for (Prenotazione p : prenotazioniList) {
+                        if (p.getNumeroBiglietto().equals(numeroBiglietto)) {
+                            prenotazione = p;
+                            break;
+                        }
+                    }
+
+                    // Se non esiste, la creo e la aggiungo
+                    if (prenotazione == null) {
+                        String posto = rs.getString("postoassegnato");
+                        StatoPrenotazione statoPren =
+                                StatoPrenotazione.valueOf(rs.getString("stato_prenotazione"));
+                        String nDocumento = rs.getString("numerodocumento");
+                        String nome = rs.getString("nome");
+                        String cognome = rs.getString("cognome");
+
+                        Passeggero passeggero = new Passeggero(nome, cognome, nDocumento);
+                        prenotazione = new Prenotazione(numeroBiglietto, posto, statoPren, passeggero);
+                        prenotazione.setBagagli(new ArrayList<>());
+
+                        prenotazioniList.add(prenotazione);
+                    }
+
+                    // Aggiungo eventuale bagaglio
+                    String codiceBagaglio = rs.getString("codice_bagaglio");
+                    if (codiceBagaglio != null) {
+                        String statoBagaglioStr = rs.getString("stato_bagaglio");
+                        if (statoBagaglioStr != null) {
+                            StatoBagaglio statoBag =
+                                    StatoBagaglio.valueOf(statoBagaglioStr);
+                            Bagaglio bag = new Bagaglio(codiceBagaglio, statoBag);
+                            prenotazione.getBagagli().add(bag);
+                        }
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Errore recupero prenotazioni per volo "
+                    + volo.getCodiceVolo() + ": " + e.getMessage());
+        }
+
+        return prenotazioniList;
     }
 
     @Override
@@ -483,7 +558,7 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
         String query = "UPDATE prenotazione SET stato = ? WHERE numerobiglietto = ?";
         try (Connection conn = ConnessioneDatabase.getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {
-            stmt.setString(1, prenotazione.toString());
+            stmt.setString(1, String.valueOf(prenotazione));
             stmt.setString(2, numeroBiglietto);
             return stmt.executeUpdate() > 0;
         } catch (SQLException e) {
@@ -496,7 +571,7 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
     @Override
     public List<Bagaglio> getAllBagagli() {
         List<Bagaglio> bagagli = new ArrayList<>();
-        String query = "SELECT * FROM bagaglio";
+        String query = "SELECT * FROM bagaglio WHERE stato = 'smarrito'";
         try (Connection conn = ConnessioneDatabase.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(query)) {
@@ -515,7 +590,7 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
     @Override
     public List<Bagaglio> getBagagliByPrenotazione(String numeroBiglietto) {
         List<Bagaglio> bagagli = new ArrayList<>();
-        String query = "SELECT b.* FROM bagagli b JOIN prenotazioni_bagagli pb ON b.codice = pb.codice_bagaglio WHERE pb.numero_biglietto = ?";
+        String query = "SELECT b.* FROM bagaglio b JOIN prenotazione pb ON b.idprenotazione = pb.id WHERE pb.numerobiglietto = ?";
         try (Connection conn = ConnessioneDatabase.getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setString(1, numeroBiglietto);
@@ -612,6 +687,32 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
             return false;
         }
     }
+
+
+    public boolean updateBagagliByVolo(String codiceVolo, StatoBagaglio nuovoStato) {
+        String sql =
+                "UPDATE bagaglio b " +
+                        "SET stato = ? " +
+                        "FROM prenotazione p " +
+                        "WHERE p.id = b.idprenotazione " +
+                        "  AND p.codicevolo = ?";
+
+        try (Connection conn = ConnessioneDatabase.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            // 1 = nuovo stato, 2 = codice del volo
+            ps.setString(1, nuovoStato.toString());
+            ps.setString(2, codiceVolo);
+
+            // esegue e ritorna quante righe sono state aggiornate
+            return ps.executeUpdate() >0;
+        } catch (SQLException e) {
+            System.err.println("Errore durante l'aggiornamento dei bagagli per volo "
+                    + codiceVolo + ": " + e.getMessage());
+            return false;
+        }
+    }
+
 
     @Override
     public List<Bagaglio> getBagagliSmarriti() {

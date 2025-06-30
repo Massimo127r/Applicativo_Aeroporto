@@ -68,7 +68,9 @@ public class Controller {
     public List<Prenotazione> getAllPrenotazioni() {
         return dao.getAllPrenotazioni();
     }
-
+    public List<Prenotazione> getPrenotazioniByVolo(Volo volo) {
+        return dao.getPrenotazioniByVolo( volo);
+    }
     public Prenotazione getPrenotazioneByNumeroBiglietto(String numeroBiglietto) {
         return dao.getPrenotazioneByNumeroBiglietto(numeroBiglietto);
     }
@@ -109,6 +111,9 @@ public class Controller {
         return dao.updateBagaglio(bagaglio);
     }
 
+    public boolean aggiornatAllBagagli(String codiceVolo, StatoBagaglio nuovoStato){
+        return dao.updateBagagliByVolo(codiceVolo,nuovoStato );
+    }
     public List<Bagaglio> getBagagliSmarriti() {
         return dao.getBagagliSmarriti();
     }
