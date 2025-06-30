@@ -1,6 +1,7 @@
 import controller.Controller;
 import gui.Login;
 import gui.UIManager;
+import gui.Welcome;
 import javax.swing.SwingUtilities;
 import Database.ConnessioneDatabase;
 import java.io.IOException;
@@ -20,9 +21,9 @@ public class Main {
                 // Create controller
                 Controller controller = new Controller();
 
-                // Create and show login frame with controller
-                Login loginFrame = new Login(controller);
-                loginFrame.setVisible(true);
+                // Create and show welcome frame with controller
+                Welcome welcomeFrame = new Welcome(controller);
+                welcomeFrame.setVisible(true);
             }
         });
     }

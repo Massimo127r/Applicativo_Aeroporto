@@ -14,6 +14,7 @@ public class Login extends JFrame {
     private JTextField usernameField;
     private JPasswordField passwordField;
     private JButton loginButton;
+    private JButton backButton;
     private JLabel statusLabel;
     private JComboBox<String> userTypeComboBox;
 
@@ -63,11 +64,37 @@ public class Login extends JFrame {
         userTypeComboBox.addItem("Utente");
         userTypeComboBox.setSelectedIndex(1); // Default to "Utente"
 
+        // Create and add back button
+        backButton = new JButton("Torna Indietro");
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
+        buttonPanel.add(loginButton);
+        buttonPanel.add(backButton);
+
+        // Replace the existing status label position
+        mainPanel.remove(statusLabel);
+        JPanel southPanel = new JPanel(new BorderLayout());
+        southPanel.add(buttonPanel, BorderLayout.CENTER);
+        southPanel.add(statusLabel, BorderLayout.SOUTH);
+        mainPanel.add(southPanel, BorderLayout.SOUTH);
+
+        // Style the back button and panels
+        UIManager.styleButton(backButton);
+        UIManager.stylePanel(buttonPanel);
+        UIManager.stylePanel(southPanel);
+
         // Add action listener to login button
         loginButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 attemptLogin();
+            }
+        });
+
+        // Add action listener to back button
+        backButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                goBackToWelcome();
             }
         });
 
@@ -120,6 +147,13 @@ public class Login extends JFrame {
         // Create and show user dashboard
         UserDashboard dashboard = new UserDashboard(user);
         dashboard.setVisible(true);
+        this.dispose(); // Close login window
+    }
+
+    private void goBackToWelcome() {
+        // Create and show welcome frame
+        Welcome welcomeFrame = new Welcome(controller);
+        welcomeFrame.setVisible(true);
         this.dispose(); // Close login window
     }
 }

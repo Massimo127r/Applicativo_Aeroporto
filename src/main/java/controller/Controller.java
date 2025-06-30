@@ -29,12 +29,16 @@ public class Controller {
         return dao.getUtenteByCredentialsAndType(login, password, tipoDb);
     }
 
-    /*
+    /**
+     * Registra un nuovo utente nel sistema
+     * @param utente Oggetto Utente da registrare
+     * @param isAdmin True se l'utente è un amministratore, False se è un utente generico
+     * @return True se la registrazione è avvenuta con successo, False altrimenti
+     */
     public boolean registraUtente(Utente utente, boolean isAdmin) {
         String tipo = isAdmin ? "amministratore" : "generico";
         return dao.insertUtente(utente, tipo);
     }
-*/
     // Metodi per la gestione dei voli
     public List<Volo> getAllVoli() {
         return dao.getAllVoli();
