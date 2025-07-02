@@ -62,15 +62,15 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
              ResultSet rs = stmt.executeQuery(query)) {
             while (rs.next()) {
                 String codiceVolo = rs.getString("codice");
-                String compagnia = rs.getString("compagniaaerea");
+                String compagnia = rs.getString("compagnia");
                 String origine = rs.getString("origine");
                 String destinazione = rs.getString("destinazione");
-                String orarioPrevisto = rs.getString("orarioprevisto");
+                String orarioPrevisto = rs.getString("orario");
                 StatoVolo stato = StatoVolo.valueOf(rs.getString("stato"));
                 LocalDate data = rs.getDate("data").toLocalDate();
                 int tempoRitardo = rs.getInt("ritardo");
-                int postiTotali = rs.getInt("postitotali");
-                int postiDisponibili = rs.getInt("postidisponibili");
+                int postiTotali = rs.getInt("posti_totali");
+                int postiDisponibili = rs.getInt("posti_disponibili");
                 int  gate = rs.getInt("gate");
 
                 Volo volo = new Volo(codiceVolo, compagnia, origine, destinazione, orarioPrevisto, stato, data, tempoRitardo, postiTotali, postiDisponibili, gate);
@@ -91,15 +91,15 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
             stmt.setString(1, codiceVolo);
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
-                    String compagnia = rs.getString("compagniaaerea");
+                    String compagnia = rs.getString("compagnia");
                     String origine = rs.getString("origine");
                     String destinazione = rs.getString("destinazione");
-                    String orarioPrevisto = rs.getString("orarioprevisto");
+                    String orarioPrevisto = rs.getString("orario");
                     StatoVolo stato = StatoVolo.valueOf(rs.getString("stato"));
                     LocalDate data = rs.getDate("data").toLocalDate();
                     int tempoRitardo = rs.getInt("ritardo");
-                    int postiTotali = rs.getInt("postitotali");
-                    int postiDisponibili = rs.getInt("postidisponibili");
+                    int postiTotali = rs.getInt("posti_totali");
+                    int postiDisponibili = rs.getInt("posti_disponibili");
                     int  gate =rs.getInt("gate");
                     return new Volo(codiceVolo, compagnia, origine, destinazione, orarioPrevisto, stato, data, tempoRitardo, postiTotali, postiDisponibili, gate);
                 }
@@ -112,29 +112,86 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
 
     @Override
     public boolean insertVolo(Volo volo) {
-        String query = "INSERT INTO Volo (codice, compagniaaerea, origine, destinazione, orarioprevisto, stato, data, ritardo, postitotali, postidisponibili) VALUES (?, ?, ?, ?, ?::time, ?::statovolo, ?, ?, ?, ?)";
-        try (Connection conn = ConnessioneDatabase.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query)) {
-            stmt.setString(1, volo.getCodiceVolo());
-            stmt.setString(2, volo.getCompagnia());
-            stmt.setString(3, volo.getOrigine());
-            stmt.setString(4, volo.getDestinazione());
-            stmt.setString(5, volo.getOrarioPrevisto());
-            stmt.setString(6, volo.getStato().toString());
-            stmt.setDate(7, Date.valueOf(volo.getData()));
-            stmt.setInt(8, volo.getTempoRitardo());
-            stmt.setInt(9, volo.getPostiTotali());
-            stmt.setInt(10, volo.getPostiDisponibili());
-            return stmt.executeUpdate() > 0;
+        String sqlVolo =
+                "INSERT INTO Volo " +
+                        "(codice, compagnia, origine, destinazione, orario, stato, data, ritardo, posti_totali, posti_disponibili) " +
+                        "VALUES (?, ?, ?, ?, ?::time, ?::statovolo, ?, ?, ?, ?)";
+        String sqlPosto =
+                "INSERT INTO posto (codice_volo, posto, occupato) VALUES (?, ?, false)";
+
+        try (Connection conn = ConnessioneDatabase.getConnection()) {
+            conn.setAutoCommit(false);
+
+            try (PreparedStatement psVolo = conn.prepareStatement(sqlVolo);
+                 PreparedStatement psPosto = conn.prepareStatement(sqlPosto)) {
+
+                // 1) Inserisco il volo
+                psVolo.setString(1, volo.getCodiceVolo());
+                psVolo.setString(2, volo.getCompagnia());
+                psVolo.setString(3, volo.getOrigine());
+                psVolo.setString(4, volo.getDestinazione());
+                psVolo.setString(5, volo.getOrarioPrevisto());
+                psVolo.setString(6, volo.getStato().toString());
+                psVolo.setDate(7, Date.valueOf(volo.getData()));
+                psVolo.setInt(8, volo.getTempoRitardo());
+                psVolo.setInt(9, volo.getPostiTotali());
+                psVolo.setInt(10, volo.getPostiTotali());
+
+                if (psVolo.executeUpdate() == 0) {
+                    conn.rollback();
+                    return false;
+                }
+
+                // 2) Genero e inserisco uno alla volta i posti
+                int totalSeats   = volo.getPostiTotali();
+                final int perRow = 6;
+                int fullRows     = totalSeats / perRow;
+                int remainder    = totalSeats % perRow;
+
+                // File complete
+                for (int row = 1; row <= fullRows; row++) {
+                    for (int s = 0; s < perRow; s++) {
+                        String seatLabel = row + String.valueOf((char)('A' + s));
+                        psPosto.setString(1, volo.getCodiceVolo());
+                        psPosto.setString(2, seatLabel);
+                        // Inserimento immediato, senza batch
+                        if (psPosto.executeUpdate() == 0) {
+                            throw new SQLException("Fallito insert posto " + seatLabel);
+                        }
+                    }
+                }
+                // Fila parziale
+                if (remainder > 0) {
+                    int row = fullRows + 1;
+                    for (int s = 0; s < remainder; s++) {
+                        String seatLabel = row + String.valueOf((char)('A' + s));
+                        psPosto.setString(1, volo.getCodiceVolo());
+                        psPosto.setString(2, seatLabel);
+                        if (psPosto.executeUpdate() == 0) {
+                            throw new SQLException("Fallito insert posto " + seatLabel);
+                        }
+                    }
+                }
+
+                conn.commit();
+                return true;
+
+            } catch (SQLException ex) {
+                conn.rollback();
+                System.err.println("Errore inserimento volo/posti: " + ex.getMessage());
+                return false;
+            } finally {
+                conn.setAutoCommit(true);
+            }
         } catch (SQLException e) {
-            System.err.println("Errore durante l'inserimento del volo: " + e.getMessage());
+            System.err.println("Errore connessione/preparazione: " + e.getMessage());
             return false;
         }
     }
 
     @Override
     public boolean updateVolo(Volo volo) {
-        String query = "UPDATE Volo SET compagniaaerea = ?, origine = ?, destinazione = ?, orarioprevisto = ?::time, stato = ?::statovolo, data = ?, ritardo = ?, postitotali = ?, postidisponibili = ? WHERE codice = ?";
+        String query = "UPDATE Volo SET compagnia= ?, origine = ?, destinazione = ?, orario = ?::time, stato = ?::statovolo, data = ?, ritardo = ?, posti_totali = ?, posti_disponibili = ? WHERE codice = ?";
         try (Connection conn = ConnessioneDatabase.getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setString(1, volo.getCompagnia());
@@ -193,7 +250,7 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
     // Metodi per Passeggero
     @Override
     public Passeggero getPasseggeroByDocumento(String nDocumento) {
-        String query = "SELECT * FROM passeggeri WHERE n_documento = ?";
+        String query = "SELECT * FROM passeggeri WHERE numero_documento = ?";
         try (Connection conn = ConnessioneDatabase.getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setString(1, nDocumento);
@@ -212,7 +269,7 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
 
     @Override
     public boolean insertPasseggero(Passeggero passeggero) {
-        String query = "INSERT INTO passeggeri (nome, cognome, n_documento) VALUES (?, ?, ?)";
+        String query = "INSERT INTO passeggeri (nome, cognome, numero_documento) VALUES (?, ?, ?)";
         try (Connection conn = ConnessioneDatabase.getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setString(1, passeggero.getNome());
@@ -230,11 +287,11 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
     public List<Prenotazione> getAllPrenotazioni() {
         List<Prenotazione> prenotazioniList = new ArrayList<>();
 
-        String query = "SELECT p.numero_biglietto, p.posto, p.stato as stato_prenotazione, " +
-                "pa.nome, pa.cognome, pa.n_documento, " +
+        String query = "SELECT p.numero_biglietto, p., p.stato as stato_prenotazione, " +
+                "pa.nome, pa.cognome, pa.numero_documento, " +
                 "b.codice as codice_bagaglio, b.stato as stato_bagaglio " +
                 "FROM prenotazioni p " +
-                "JOIN passeggeri pa ON p.passeggero_id = pa.n_documento " +
+                "JOIN passeggeri pa ON p.id_passeggero = pa.id_passeggero " +
                 "LEFT JOIN prenotazioni_bagagli pb ON p.numero_biglietto = pb.numero_biglietto " +
                 "LEFT JOIN bagagli b ON pb.codice_bagaglio = b.codice " +
                 "ORDER BY p.numero_biglietto";
@@ -293,14 +350,14 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
     public List<Prenotazione> getPrenotazioniByVolo(Volo volo) {
         List<Prenotazione> prenotazioniList = new ArrayList<>();
 
-        String sql = "SELECT p.numerobiglietto, p.postoassegnato, p.stato AS stato_prenotazione, " +
-                "pa.nome, pa.cognome, pa.numerodocumento, " +
+        String sql = "SELECT p.numero_biglietto, p.posto, p.stato AS stato_prenotazione, " +
+                "pa.nome, pa.cognome, pa.numero_documento, " +
                 "b.codice AS codice_bagaglio, b.stato AS stato_bagaglio " +
                 "FROM prenotazione p " +
-                "JOIN passeggero pa ON p.idpasseggero = pa.id " +
-                "LEFT JOIN bagaglio b ON b.idprenotazione = p.id " +
-                "WHERE p.codicevolo = ? " +
-                "ORDER BY p.numerobiglietto";
+                "JOIN passeggero pa ON p.id_passeggero = pa.id_passeggero " +
+                "LEFT JOIN bagaglio b ON b.id_prenotazione = p.id_prenotazione " +
+                "WHERE p.codice_volo = ? " +
+                "ORDER BY p.numero_biglietto";
 
         try (Connection conn = ConnessioneDatabase.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -310,7 +367,7 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    String numeroBiglietto = rs.getString("numerobiglietto");
+                    String numeroBiglietto = rs.getString("numero_biglietto");
 
                     // Cerco in lista una prenotazione già creata per questo biglietto
                     Prenotazione prenotazione = null;
@@ -323,10 +380,10 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
 
                     // Se non esiste, la creo e la aggiungo
                     if (prenotazione == null) {
-                        String posto = rs.getString("postoassegnato");
+                        String posto = rs.getString("posto");
                         StatoPrenotazione statoPren =
                                 StatoPrenotazione.valueOf(rs.getString("stato_prenotazione"));
-                        String nDocumento = rs.getString("numerodocumento");
+                        String nDocumento = rs.getString("numero_documento");
                         String nome = rs.getString("nome");
                         String cognome = rs.getString("cognome");
 
@@ -590,7 +647,7 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
     @Override
     public List<Bagaglio> getBagagliByPrenotazione(String numeroBiglietto) {
         List<Bagaglio> bagagli = new ArrayList<>();
-        String query = "SELECT b.* FROM bagaglio b JOIN prenotazione pb ON b.idprenotazione = pb.id WHERE pb.numerobiglietto = ?";
+        String query = "SELECT b.* FROM bagaglio b JOIN prenotazione pb ON b.id_prenotazione = pb.id_prenotazione WHERE pb.numero_biglietto = ?";
         try (Connection conn = ConnessioneDatabase.getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setString(1, numeroBiglietto);
@@ -694,8 +751,8 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
                 "UPDATE bagaglio b " +
                         "SET stato = ? " +
                         "FROM prenotazione p " +
-                        "WHERE p.id = b.idprenotazione " +
-                        "  AND p.codicevolo = ?";
+                        "WHERE p.id = b.id_prenotazione " +
+                        "  AND p.codice_volo = ?";
 
         try (Connection conn = ConnessioneDatabase.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {

@@ -413,8 +413,7 @@ public class AdminDashboard extends JFrame {
         formPanel.add(delayField);
         formPanel.add(new JLabel("Posti Totali:"));
         formPanel.add(totalSeatsField);
-        formPanel.add(new JLabel("Posti Disponibili:"));
-        formPanel.add(seatsField);
+
 
         // Add form panel to center
         addFlightPanel.add(formPanel, BorderLayout.CENTER);
@@ -437,12 +436,11 @@ public class AdminDashboard extends JFrame {
                     LocalDate date = LocalDate.parse(dateField.getText());
                     int delay = Integer.parseInt(delayField.getText());
                     int totalSeats = Integer.parseInt(totalSeatsField.getText());
-                    int availableSeats = Integer.parseInt(seatsField.getText());
 
                     if (airline.isEmpty() || origin.isEmpty() || destination.isEmpty() || time.isEmpty() || 
-                        totalSeats <= 0 || availableSeats <= 0 || availableSeats > totalSeats) {
+                        totalSeats <= 0 ) {
                         JOptionPane.showMessageDialog(AdminDashboard.this,
-                            "Tutti i campi sono obbligatori. I posti totali e disponibili devono essere maggiori di zero, e i posti disponibili non possono superare i posti totali.",
+                            "Tutti i campi sono obbligatori. I posti totali  devono essere maggiori di zero",
                             "Errore", JOptionPane.ERROR_MESSAGE);
                         return;
                     }
@@ -461,10 +459,10 @@ public class AdminDashboard extends JFrame {
 
                     try {
                         // Create new flight
-                        Volo newFlight = new Volo(code, airline, origin, destination, time, status, date, delay, totalSeats, availableSeats, 0);
+                        Volo newFlight = new Volo(code, airline, origin, destination, time, status, date, delay, totalSeats, totalSeats, 0);
 
                         // Save to database
-                        success = controller.inserisciVolo(code, airline, origin, destination, time, status, date, delay, totalSeats, availableSeats);
+                        success = controller.inserisciVolo(code, airline, origin, destination, time, status, date, delay, totalSeats, totalSeats);
                     } catch (IllegalArgumentException ex) {
                         JOptionPane.showMessageDialog(AdminDashboard.this,
                             ex.getMessage(),
@@ -1008,10 +1006,7 @@ public class AdminDashboard extends JFrame {
         formPanel.add(dateField);
         formPanel.add(new JLabel("Ritardo (min):"));
         formPanel.add(delayField);
-        formPanel.add(new JLabel("Posti Totali:"));
-        formPanel.add(totalSeatsField);
-        formPanel.add(new JLabel("Posti Disponibili:"));
-        formPanel.add(availableSeatsField);
+
 
         mainPanel.add(formPanel, BorderLayout.CENTER);
 
