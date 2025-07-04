@@ -4,12 +4,20 @@ import java.util.List;
 
 public class Prenotazione {
     private String numeroBiglietto;
+    private String codiceVolo;
     private String posto;
     private StatoPrenotazione stato;
     private Passeggero passeggero;
     private List<Bagaglio> bagagli;
 
-    public Prenotazione(String numeroBiglietto, String posto, StatoPrenotazione stato, Passeggero passeggero) {
+    public Prenotazione( String numeroBiglietto, String posto, StatoPrenotazione stato, Passeggero passeggero) {
+        this.numeroBiglietto = numeroBiglietto;
+        this.posto = posto;
+        this.stato = stato;
+        this.passeggero = passeggero;
+    }
+    public Prenotazione(String codiceVolo, String numeroBiglietto, String posto, StatoPrenotazione stato, Passeggero passeggero) {
+        this.codiceVolo = codiceVolo;
         this.numeroBiglietto = numeroBiglietto;
         this.posto = posto;
         this.stato = stato;
@@ -33,5 +41,13 @@ public class Prenotazione {
 
     public void checkin() {
         // Logica check-in da implementare
+    }
+
+    public String getCodiceVolo() {
+        return codiceVolo;
+    }
+
+    public void setCodiceVolo(String codiceVolo) {
+        this.codiceVolo = codiceVolo;
     }
 }

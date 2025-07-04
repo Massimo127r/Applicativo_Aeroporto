@@ -600,17 +600,9 @@ public class AdminDashboard extends JFrame {
         lostBaggagePanel.add(scrollPane, BorderLayout.CENTER);
 
         // Add refresh button
-        JButton refreshButton = new JButton("Aggiorna");
-        refreshButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                // In a real application, this would query the database for lost baggage
-                updateLostBaggageTable(lostBaggageTable);
-            }
-        });
+
 
         JPanel buttonPanel = new JPanel();
-        buttonPanel.add(refreshButton);
         lostBaggagePanel.add(buttonPanel, BorderLayout.SOUTH);
 
         // Add panel to tabbed pane

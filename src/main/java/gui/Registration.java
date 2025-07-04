@@ -123,8 +123,8 @@ public class Registration extends JFrame {
         registerButton = new JButton("Registrati");
         backButton = new JButton("Torna Indietro");
 
-        buttonsPanel.add(registerButton);
         buttonsPanel.add(backButton);
+        buttonsPanel.add(registerButton);
 
         // Add panels to main panel
         mainPanel.add(titlePanel, BorderLayout.NORTH);

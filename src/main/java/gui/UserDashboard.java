@@ -10,6 +10,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Random;
 
@@ -30,10 +31,9 @@ public class UserDashboard extends JFrame {
     private JTextField passengerNameField;
     private JTextField passengerSurnameField;
     private JTextField passengerDocumentField;
-    private JTextField seatField;
     private JSpinner baggageCountSpinner;
     private JTable bookingsTable;
-
+    private JTable baggageTable;
     // My Flights tab components
     private JPanel myFlightsPanel;
     private JTable myFlightsTable;
@@ -132,16 +132,15 @@ public class UserDashboard extends JFrame {
         // Retrieve flights from database
         flights = controller.getAllVoli();
 
-        // If no flights in database, create an empty list
         if (flights == null) {
             flights = new ArrayList<>();
         }
 
         // Initialize bookings
-        bookings = new ArrayList<>();
+        bookings = controller.getPrenotazioneByUtente(user);
 
         // Initialize baggages
-        baggages = new ArrayList<>();
+        baggages = controller.getBagagliByUtente(user);
     }
 
     private void createHomepagePanel() {
@@ -356,7 +355,7 @@ public class UserDashboard extends JFrame {
         passengerNameField = new JTextField();
         passengerSurnameField = new JTextField();
         passengerDocumentField = new JTextField();
-        seatField = new JTextField();
+        // Remove seatField as we'll use a dialog for seat selection
         baggageCountSpinner = new JSpinner(new SpinnerNumberModel(0, 0, 5, 1));
 
         formPanel.add(new JLabel("Volo:"));
@@ -367,8 +366,7 @@ public class UserDashboard extends JFrame {
         formPanel.add(passengerSurnameField);
         formPanel.add(new JLabel("Numero Documento:"));
         formPanel.add(passengerDocumentField);
-        formPanel.add(new JLabel("Posto:"));
-        formPanel.add(seatField);
+        // Remove seat field from form as we'll use a dialog
         formPanel.add(new JLabel("Numero Bagagli:"));
         formPanel.add(baggageCountSpinner);
 
@@ -398,13 +396,8 @@ public class UserDashboard extends JFrame {
             }
         };
 
-        model.addColumn("Numero Biglietto");
-        model.addColumn("Passeggero");
-        model.addColumn("Posto");
-        model.addColumn("Stato");
-        model.addColumn("Bagagli");
 
-        bookingsTable = new JTable(model);
+       /* bookingsTable = new JTable(model);
 
         // Add mouse listener to show baggage details when a booking is clicked
         bookingsTable.addMouseListener(new java.awt.event.MouseAdapter() {
@@ -421,9 +414,12 @@ public class UserDashboard extends JFrame {
         JScrollPane scrollPane = new JScrollPane(bookingsTable);
         scrollPane.setBorder(BorderFactory.createTitledBorder("Le Mie Prenotazioni"));
         bookingPanel.add(scrollPane, BorderLayout.CENTER);
+        updateBookingsTable();
 
+        */
         // Add panel to tabbed pane
         tabbedPane.addTab("Prenotazione Voli", bookingPanel);
+
     }
 
     private void bookFlight() {
@@ -433,16 +429,21 @@ public class UserDashboard extends JFrame {
             return;
         }
 
-
         String flightCode = flightString.split(" - ")[0];
         String name = passengerNameField.getText();
         String surname = passengerSurnameField.getText();
         String document = passengerDocumentField.getText();
-        String seat = seatField.getText();
         int baggageCount = (int) baggageCountSpinner.getValue();
 
-        if (name.isEmpty() || surname.isEmpty() || document.isEmpty() || seat.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Tutti i campi sono obbligatori", "Errore", JOptionPane.ERROR_MESSAGE);
+        if (name.isEmpty() || surname.isEmpty() || document.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Nome, cognome e documento sono obbligatori", "Errore", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        // Open seat selection dialog
+        String seat = selectSeat(flightCode);
+        if (seat == null || seat.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "È necessario selezionare un posto", "Errore", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
@@ -451,9 +452,9 @@ public class UserDashboard extends JFrame {
 
         // Create passenger
         Passeggero passenger = new Passeggero(name, surname, document);
-
         // Create booking
-        Prenotazione booking = new Prenotazione(ticketNumber, seat, StatoPrenotazione.inAttesa, passenger);
+        Prenotazione booking = new Prenotazione(flightCode, ticketNumber, seat, StatoPrenotazione.inAttesa, passenger);
+
 
         // Add baggage if needed
         StringBuilder baggageInfo = new StringBuilder();
@@ -472,17 +473,17 @@ public class UserDashboard extends JFrame {
 
         // Add booking to list
         bookings.add(booking);
-
+        controller.creaPrenotazione(booking, flightCode, user);
         // Update bookings table
-        updateBookingsTable();
 
         // Clear form
         passengerNameField.setText("");
         passengerSurnameField.setText("");
         passengerDocumentField.setText("");
-        seatField.setText("");
         baggageCountSpinner.setValue(0);
-
+        updateMyFlightsTable();
+        updateBaggageTable(baggageTable);
+        baggages = controller.getBagagliByUtente(user);
         JOptionPane.showMessageDialog(this,
             "Prenotazione effettuata con successo!\nNumero Biglietto: " + ticketNumber + baggageInfo.toString(),
             "Prenotazione Confermata", JOptionPane.INFORMATION_MESSAGE);
@@ -566,16 +567,9 @@ public class UserDashboard extends JFrame {
         myFlightsPanel.add(scrollPane, BorderLayout.CENTER);
 
         // Add refresh button
-        JButton refreshButton = new JButton("Aggiorna");
-        refreshButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                updateMyFlightsTable();
-            }
-        });
 
+        updateMyFlightsTable();
         JPanel buttonPanel = new JPanel();
-        buttonPanel.add(refreshButton);
         myFlightsPanel.add(buttonPanel, BorderLayout.SOUTH);
 
         // Add panel to tabbed pane
@@ -644,8 +638,7 @@ public class UserDashboard extends JFrame {
                 String baggageCode = baggageCodeField.getText().trim();
 
                 // Get the baggage table from the scroll pane
-                JScrollPane scrollPane = (JScrollPane) baggageTrackingPanel.getComponent(1);
-                JTable baggageTable = (JTable) scrollPane.getViewport().getView();
+
 
                 // Filter the table based on search criteria
                 DefaultTableModel model = (DefaultTableModel) baggageTable.getModel();
@@ -658,7 +651,7 @@ public class UserDashboard extends JFrame {
                         if (booking.getBagagli() != null) {
                             for (Bagaglio b : booking.getBagagli()) {
                                 if (b.getCodice().equals(baggage.getCodice())) {
-                                    flightInfo = "Prenotazione: " + booking.getNumeroBiglietto();
+                                    flightInfo = "Prenotazione: " + booking.getCodiceVolo();
                                     break;
                                 }
                             }
@@ -709,8 +702,8 @@ public class UserDashboard extends JFrame {
         model.addColumn("Stato");
         model.addColumn("Azioni");
 
-        JTable baggageTable = new JTable(model);
-
+         baggageTable = new JTable(model);
+        updateBaggageTable(baggageTable);
         // Set custom renderer for the status column
         baggageTable.getColumnModel().getColumn(2).setCellRenderer(new DefaultTableCellRenderer() {
             @Override
@@ -758,18 +751,15 @@ public class UserDashboard extends JFrame {
         JScrollPane scrollPane = new JScrollPane(baggageTable);
         scrollPane.setBorder(BorderFactory.createTitledBorder("Tutti i Bagagli"));
         baggageTrackingPanel.add(scrollPane, BorderLayout.CENTER);
-
+        updateBaggageTable(baggageTable);
         // Add refresh button
-        JButton refreshButton = new JButton("Aggiorna");
-        refreshButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                updateBaggageTable(baggageTable);
-            }
-        });
+
+
+
+
 
         JPanel buttonPanel = new JPanel();
-        buttonPanel.add(refreshButton);
+
         baggageTrackingPanel.add(buttonPanel, BorderLayout.SOUTH);
 
         // Initialize the table
@@ -794,7 +784,7 @@ public class UserDashboard extends JFrame {
                 if (booking.getBagagli() != null) {
                     for (Bagaglio b : booking.getBagagli()) {
                         if (b.getCodice().equals(baggage.getCodice())) {
-                            flightInfo = "Prenotazione: " + booking.getNumeroBiglietto();
+                            flightInfo = "Prenotazione: " + booking.getCodiceVolo();
                             break;
                         }
                     }
@@ -824,12 +814,10 @@ public class UserDashboard extends JFrame {
      */
     private void reportLostBaggageFromTable(String baggageCode, int row, JTable baggageTable) {
         // Show dialog for description
-        String description = JOptionPane.showInputDialog(this,
-            "Inserisci una descrizione del bagaglio smarrito:",
-            "Segnalazione Smarrimento",
-            JOptionPane.PLAIN_MESSAGE);
+        int description = JOptionPane.showConfirmDialog(this,
+            "Sei sicuro di voler segnalare questo bagaglio come smarrito?");
 
-        if (description != null && !description.isEmpty()) {
+        if (description == 0 ) {
             JOptionPane.showMessageDialog(this,
                 "Segnalazione inviata con successo!\nUn operatore ti contatterà al più presto.",
                 "Segnalazione Inviata",
@@ -838,9 +826,10 @@ public class UserDashboard extends JFrame {
             // Mark the baggage as lost
             for (Bagaglio baggage : baggages) {
                 if (baggage.getCodice().equals(baggageCode)) {
-                    // Set the baggage status to "smarrito"
                     baggage.setStato(StatoBagaglio.smarrito);
                     // Update the table
+                    controller.aggiornaBagaglio(baggage);
+
                     updateBaggageTable(baggageTable);
                     break;
                 }
@@ -932,4 +921,162 @@ public class UserDashboard extends JFrame {
             "Dettagli Bagagli",
             JOptionPane.INFORMATION_MESSAGE);
     }
+
+    /**
+     * Displays a dialog for seat selection and returns the selected seat
+     * @param flightCode The code of the flight to select a seat for
+     * @return The selected seat or null if no seat was selected
+     */
+    private String selectSeat(String flightCode) {
+        // 1) Trova il volo in memoria
+        Volo selectedFlight = flights.stream()
+                .filter(v -> v.getCodiceVolo().equals(flightCode))
+                .findFirst()
+                .orElse(null);
+
+        if (selectedFlight == null) {
+            JOptionPane.showMessageDialog(this,
+                    "Volo non trovato",
+                    "Errore",
+                    JOptionPane.ERROR_MESSAGE);
+            return null;
+        }
+
+        // 2) Carica i posti dal controller
+        List<Posto> posti;
+        try {
+            posti = controller.getPostiByVolo(flightCode);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this,
+                    "Errore caricamento posti: " + ex.getMessage(),
+                    "Errore DB",
+                    JOptionPane.ERROR_MESSAGE);
+            return null;
+        }
+
+        // 3) Ordina per fila e lettera
+        posti.sort(Comparator.comparing(Posto::getSeatNumber, (a, b) -> {
+            int filaA = Integer.parseInt(a.replaceAll("\\D", ""));
+            int filaB = Integer.parseInt(b.replaceAll("\\D", ""));
+            if (filaA != filaB) return filaA - filaB;
+            return a.replaceAll("\\d", "").charAt(0) - b.replaceAll("\\d", "").charAt(0);
+        }));
+
+        // 4) Costruisci il dialog
+        JDialog seatDialog = new JDialog(this, "Seleziona Posto - Volo " + flightCode, true);
+        seatDialog.setSize(700, 600);
+        seatDialog.setLocationRelativeTo(this);
+
+        JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        mainPanel.add(new JLabel(
+                        "Volo: " + flightCode + " - Posti disponibili: " + selectedFlight.getPostiDisponibili()),
+                BorderLayout.NORTH);
+
+        // --- Qui dichiariamo di nuovo airplanePanel ---
+        JPanel airplanePanel = new JPanel(new BorderLayout(10,10));
+        airplanePanel.setBorder(BorderFactory.createTitledBorder("Seleziona un posto disponibile"));
+
+        // 5) Griglia con corridoio
+        int cols = 6;
+        int rows = (int) Math.ceil(posti.size() / (double) cols);
+        JPanel seatGrid = new JPanel(new GridLayout(rows, cols + 1, 5, 5));
+
+        final String[] selectedSeat = {null};
+        int countInRow = 0;
+
+        for (Posto p : posti) {
+            if (countInRow == 3) {
+                seatGrid.add(Box.createHorizontalStrut(20));
+            }
+
+            String seatNumber = p.getSeatNumber();
+            JButton btn = new JButton(seatNumber);
+            btn.setPreferredSize(new Dimension(60, 40));
+
+            if (p.isOccupato()) {
+                btn.setEnabled(false);
+                btn.setBackground(Color.RED);
+                btn.setText(seatNumber + " (X)");
+            } else {
+                btn.setBackground(Color.GREEN);
+                btn.addActionListener(e -> {
+                    if (selectedSeat[0] != null) {
+                        for (Component c : seatGrid.getComponents()) {
+                            if (c instanceof JButton old &&
+                                    old.getText().startsWith(selectedSeat[0]) &&
+                                    old.isEnabled()) {
+                                old.setBackground(Color.GREEN);
+                                old.setText(selectedSeat[0]);
+                            }
+                        }
+                    }
+                    selectedSeat[0] = seatNumber;
+                    btn.setBackground(Color.BLUE);
+                    btn.setText(seatNumber + " (✓)");
+                });
+            }
+
+            seatGrid.add(btn);
+            countInRow++;
+            if (countInRow == cols) countInRow = 0;
+        }
+
+        // 6) Scroll pane per la griglia
+        JScrollPane scrollPane = new JScrollPane(seatGrid,
+                JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+                JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        airplanePanel.add(scrollPane, BorderLayout.CENTER);
+
+        // 7) Legend
+        JPanel legend = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 5));
+        legend.add(new JLabel("Libero", JLabel.LEFT));
+        legend.add(createLegendBox(Color.GREEN));
+        legend.add(new JLabel("Occupato", JLabel.LEFT));
+        legend.add(createLegendBox(Color.RED));
+        legend.add(new JLabel("Selezionato", JLabel.LEFT));
+        legend.add(createLegendBox(Color.BLUE));
+        airplanePanel.add(legend, BorderLayout.NORTH);
+
+        // 8) Footer con pulsanti
+        JPanel footer = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
+        JButton confirm = new JButton("Conferma");
+        confirm.addActionListener(e -> {
+            if (selectedSeat[0] != null) {
+                seatDialog.dispose();
+            } else {
+                JOptionPane.showMessageDialog(seatDialog,
+                        "Seleziona un posto prima di confermare",
+                        "Avviso",
+                        JOptionPane.WARNING_MESSAGE);
+            }
+        });
+        JButton cancel = new JButton("Annulla");
+        cancel.addActionListener(e -> {
+            selectedSeat[0] = null;
+            seatDialog.dispose();
+        });
+        footer.add(confirm);
+        footer.add(cancel);
+
+        // Assemblo tutto
+        mainPanel.add(airplanePanel, BorderLayout.CENTER);
+        mainPanel.add(footer, BorderLayout.SOUTH);
+        seatDialog.setContentPane(mainPanel);
+        seatDialog.setVisible(true);
+
+        return selectedSeat[0];
+    }
+
+    /**
+     * Aiuto per creare un quadratino colorato
+     */
+    private Component createLegendBox(Color c) {
+        JPanel box = new JPanel();
+        box.setBackground(c);
+        box.setPreferredSize(new Dimension(15, 15));
+        return box;
+    }
+
+
 }

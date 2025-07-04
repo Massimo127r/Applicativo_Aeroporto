@@ -108,16 +108,16 @@
         <properties/>
         <border type="none"/>
         <children>
-          <component id="f9c9h" class="javax.swing.JButton" binding="registerButton">
-            <constraints/>
-            <properties>
-              <text value="Registrati"/>
-            </properties>
-          </component>
           <component id="f9c9i" class="javax.swing.JButton" binding="backButton">
             <constraints/>
             <properties>
               <text value="Torna Indietro"/>
+            </properties>
+          </component>
+          <component id="f9c9h" class="javax.swing.JButton" binding="registerButton">
+            <constraints/>
+            <properties>
+              <text value="Registrati"/>
             </properties>
           </component>
         </children>

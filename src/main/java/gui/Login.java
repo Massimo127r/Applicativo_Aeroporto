@@ -67,8 +67,8 @@ public class Login extends JFrame {
         // Create and add back button
         backButton = new JButton("Torna Indietro");
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
-        buttonPanel.add(loginButton);
         buttonPanel.add(backButton);
+        buttonPanel.add(loginButton);
 
         // Replace the existing status label position
         mainPanel.remove(statusLabel);

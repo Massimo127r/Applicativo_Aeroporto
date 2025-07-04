@@ -83,10 +83,8 @@ public class Controller {
         return dao.getPrenotazioniByPasseggero(nome, cognome);
     }
 
-    public boolean creaPrenotazione(String numeroBiglietto, String posto, StatoPrenotazione stato,
-                                   Passeggero passeggero, String codiceVolo) {
-        Prenotazione prenotazione = new Prenotazione(numeroBiglietto, posto, stato, passeggero);
-        return dao.insertPrenotazione(prenotazione, codiceVolo);
+    public boolean creaPrenotazione(Prenotazione prenotazione,String  codiceVolo,Utente utente) {
+        return dao.insertPrenotazione(prenotazione, codiceVolo, utente);
     }
 
     public boolean aggiornaPrenotazione(StatoPrenotazione prenotazione, String numeroBiglietto) {
@@ -121,4 +119,14 @@ public class Controller {
     public List<Bagaglio> getBagagliSmarriti() {
         return dao.getBagagliSmarriti();
     }
+
+
+    public List<Prenotazione> getPrenotazioneByUtente(Utente utente) {
+        return dao.getPrenotazioneByUtente(utente);
+
+    }
+
+    public List<Posto> getPostiByVolo(String coidceVolo) { return dao.getPostiByVolo(coidceVolo);}
+
+    public List<Bagaglio> getBagagliByUtente(Utente user){return dao.getBagagliByUtente(user);}
 }
