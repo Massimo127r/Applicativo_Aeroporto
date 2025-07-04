@@ -366,7 +366,7 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
                 + "  JOIN passeggero pa ON p.id_passeggero = pa.id_passeggero "
                 + "  LEFT JOIN bagaglio b ON b.id_prenotazione = p.id_prenotazione "
                 + "WHERE p.username = ? "
-                + "ORDER BY p.numero_biglietto";
+                + "ORDER BY p.codice_volo";
 
         try (Connection conn = ConnessioneDatabase.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -688,7 +688,7 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
                         psInsB.executeBatch();
                     }
 
-
+                }
                     String updateV = ""
                             + "UPDATE volo "
                             + "SET posti_disponibili = posti_disponibili - 1 "
@@ -714,7 +714,7 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
                             throw new SQLException("Impossibile occupare il posto: già occupato o non esistente");
                         }
                     }
-                }
+
                 conn.commit();
                 success = true;
 
@@ -733,7 +733,7 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
 
     @Override
     public boolean updatePrenotazione(StatoPrenotazione prenotazione, String numeroBiglietto) {
-        String query = "UPDATE prenotazione SET stato = ? WHERE numerobiglietto = ?";
+        String query = "UPDATE prenotazione SET stato = ? WHERE numero_biglietto = ?";
         try (Connection conn = ConnessioneDatabase.getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setString(1, String.valueOf(prenotazione));
@@ -952,7 +952,9 @@ public List<Bagaglio> getBagagliByUtente(Utente user){
             + "SELECT b.codice, b.stato, b.id_prenotazione "
             + "FROM bagaglio b "
             + "JOIN prenotazione p ON b.id_prenotazione = p.id_prenotazione "
-            + "WHERE p.username = ?";
+            + "WHERE p.username = ? "
+            +"ORDER BY p.codice_volo";
+
 
     try (Connection conn = ConnessioneDatabase.getConnection();
          PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -979,4 +981,26 @@ public List<Bagaglio> getBagagliByUtente(Utente user){
 
 
 }
+
+
+    @Override
+    public Prenotazione getPrenotazioneByBagaglio(String codice_bagaglio) {
+        String query = "SELECT * FROM prenotazione p " +
+                    "JOIN bagaglio b ON b.id_prenotazione = p.id_prenotazione " +
+                "JOIN passeggero pa ON pa.id_passeggero = p.id_passeggero " +
+                " WHERE b.codice = ?";
+        try (Connection conn = ConnessioneDatabase.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setString(1, codice_bagaglio);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    Passeggero pa = new Passeggero(rs.getString("nome"), rs.getString("cognome"), rs.getString("numero_documento"));
+                    return new Prenotazione(rs.getString("codice_volo"), rs.getString("numero_biglietto"), rs.getString("posto"), StatoPrenotazione.valueOf(rs.getString("stato") ), pa);
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Errore durante il recupero del bagaglio: " + e.getMessage());
+        }
+        return null;
+    }
 }

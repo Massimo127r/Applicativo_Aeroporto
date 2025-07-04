@@ -561,6 +561,8 @@ public class AdminDashboard extends JFrame {
             public boolean isCellEditable(int row, int column) {
                 return false; // Make all cells non-editable
             }
+
+
         };
         model.addColumn("Codice Bagaglio");
         model.addColumn("Stato");
@@ -646,7 +648,7 @@ public class AdminDashboard extends JFrame {
      */
     private void showBaggageStatusDialog(String baggageCode, int row, JTable lostBaggageTable) {
         // Create a dialog with a combo box for status
-        JPanel panel = new JPanel(new GridLayout(2, 2, 10, 10));
+        JPanel panel = new JPanel(new GridLayout(5, 2, 10, 10));
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
         JComboBox<StatoBagaglio> statusComboBox = new JComboBox<>(StatoBagaglio.values());
@@ -660,9 +662,15 @@ public class AdminDashboard extends JFrame {
                 break;
             }
         }
-
+    Prenotazione p = controller.getPrenotazioneByBagaglio(baggageCode);
         panel.add(new JLabel("Codice Bagaglio:"));
         panel.add(new JLabel(baggageCode));
+        panel.add(new JLabel("Codice Volo:"));
+        panel.add(new JLabel(p.getCodiceVolo()));
+        panel.add(new JLabel("Passeggero:"));
+        panel.add(new JLabel(p.getPasseggero().getNome() +" " + p.getPasseggero().getCognome()));
+        panel.add(new JLabel("Numero documento:"));
+        panel.add(new JLabel(p.getPasseggero().getnDocumento() ));
         panel.add(new JLabel("Nuovo Stato:"));
         panel.add(statusComboBox);
 
@@ -883,7 +891,10 @@ public class AdminDashboard extends JFrame {
         };
 
         model.addColumn("Numero Biglietto");
+
         model.addColumn("Passeggero");
+        model.addColumn("Numero documento");
+
         model.addColumn("Posto");
         model.addColumn("Stato");
         model.addColumn("Bagagli");
@@ -893,7 +904,7 @@ public class AdminDashboard extends JFrame {
         // For now, we'll just add some example bookings
         List<Prenotazione> prenotazioni =  controller.getPrenotazioniByVolo(flight);
         for( Prenotazione p : prenotazioni){
-            model.addRow(new Object[]{p.getNumeroBiglietto(), p.getPasseggero().getNome() + " " + p.getPasseggero().getCognome(), p.getPosto(), p.getStato(), p.getBagagli().size(), "Modifica"});
+            model.addRow(new Object[]{p.getNumeroBiglietto(), p.getPasseggero().getNome() + " " + p.getPasseggero().getCognome(), p.getPasseggero().getnDocumento(), p.getPosto(), p.getStato(), p.getBagagli().size(), "Modifica"});
 
         }
 
@@ -907,7 +918,7 @@ public class AdminDashboard extends JFrame {
                 int row = bookingsTable.rowAtPoint(evt.getPoint());
                 int col = bookingsTable.columnAtPoint(evt.getPoint());
 
-                if (row >= 0 && col == 5) { // Action column
+                if (row >= 0 && col == 6) { // Action column
                     String ticketNumber = (String) bookingsTable.getValueAt(row, 0);
                     showBookingDetailsDialog(ticketNumber, row, bookingsTable);
                 }
@@ -1225,9 +1236,11 @@ public class AdminDashboard extends JFrame {
 
         // Get booking details from the table
         String passengerName = (String) bookingsTable.getValueAt(row, 1);
-        String seat = (String) bookingsTable.getValueAt(row, 2);
-        String status = (String) bookingsTable.getValueAt(row, 3).toString();
-        String baggageCount = (String) bookingsTable.getValueAt(row, 4).toString();
+        String ndoc = (String) bookingsTable.getValueAt(row, 2);
+
+        String seat = (String) bookingsTable.getValueAt(row, 3);
+        String status = (String) bookingsTable.getValueAt(row, 4).toString();
+        String baggageCount = (String) bookingsTable.getValueAt(row, 5).toString();
 
         // Create form fields
         JTextField nameField = new JTextField(passengerName);
@@ -1247,6 +1260,8 @@ public class AdminDashboard extends JFrame {
         formPanel.add(new JLabel(ticketNumber));
         formPanel.add(new JLabel("Passeggero:"));
         formPanel.add(new JLabel(passengerName));
+        formPanel.add(new JLabel("N°Documento:"));
+        formPanel.add(new JLabel(ndoc));
         formPanel.add(new JLabel("Posto:"));
         formPanel.add(new JLabel(seat));
         formPanel.add(new JLabel("Stato:"));
@@ -1264,7 +1279,7 @@ public class AdminDashboard extends JFrame {
             public void actionPerformed(ActionEvent e) {
                 // Update the booking in the table
                 bookingsTable.setValueAt(nameField.getText(), row, 1);
-                bookingsTable.setValueAt(seatField.getText(), row, 2);
+                bookingsTable.setValueAt(seatField.getText(), row, 3);
 
                 // Convert enum to display string
                 String statusDisplay;
@@ -1277,7 +1292,7 @@ public class AdminDashboard extends JFrame {
                     statusDisplay = "Cancellato";
                 }
 
-                bookingsTable.setValueAt(statusDisplay, row, 3);
+                bookingsTable.setValueAt(statusDisplay, row, 4);
 
                 controller.aggiornaPrenotazione(selectedStatus, ticketNumber);
 

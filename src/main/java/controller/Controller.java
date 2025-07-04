@@ -129,4 +129,8 @@ public class Controller {
     public List<Posto> getPostiByVolo(String coidceVolo) { return dao.getPostiByVolo(coidceVolo);}
 
     public List<Bagaglio> getBagagliByUtente(Utente user){return dao.getBagagliByUtente(user);}
+
+    public Prenotazione getPrenotazioneByBagaglio(String codice_bagaglio) {
+        return dao.getPrenotazioneByBagaglio(codice_bagaglio);
+    }
 }

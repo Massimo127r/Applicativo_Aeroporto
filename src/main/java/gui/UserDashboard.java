@@ -542,9 +542,11 @@ public class UserDashboard extends JFrame {
                 return false; // Make all cells non-editable
             }
         };
+        model.addColumn("Codice Volo");
 
         model.addColumn("Numero Biglietto");
         model.addColumn("Passeggero");
+        model.addColumn("N° Documento");
         model.addColumn("Posto");
         model.addColumn("Stato");
         model.addColumn("Bagagli");
@@ -611,8 +613,10 @@ public class UserDashboard extends JFrame {
             int baggageCount = booking.getBagagli() != null ? booking.getBagagli().size() : 0;
 
             model.addRow(new Object[]{
+                    booking.getCodiceVolo(),
                 booking.getNumeroBiglietto(),
                 passenger.getNome() + " " + passenger.getCognome(),
+                    passenger.getnDocumento(),
                 booking.getPosto(),
                 booking.getStato(),
                 baggageCount
@@ -647,11 +651,13 @@ public class UserDashboard extends JFrame {
                 for (Bagaglio baggage : baggages) {
                     // Find the booking that contains this baggage
                     String flightInfo = "N/A";
+                    String tckInfo = "N/A";
                     for (Prenotazione booking : bookings) {
                         if (booking.getBagagli() != null) {
                             for (Bagaglio b : booking.getBagagli()) {
                                 if (b.getCodice().equals(baggage.getCodice())) {
-                                    flightInfo = "Prenotazione: " + booking.getCodiceVolo();
+                                    tckInfo = booking.getCodiceVolo();
+                                    flightInfo = booking.getCodiceVolo();
                                     break;
                                 }
                             }
@@ -670,10 +676,11 @@ public class UserDashboard extends JFrame {
                         }
 
                         model.addRow(new Object[]{
-                            baggage.getCodice(),
-                            flightInfo,
-                            status,
-                            "Segnala Smarrimento"
+                                flightInfo,
+                                tckInfo,
+                                baggage.getCodice(),
+                                status,
+                                "Segnala Smarrimento"
                         });
                     }
                 }
@@ -696,16 +703,17 @@ public class UserDashboard extends JFrame {
                 return false; // Make all cells non-editable
             }
         };
+        model.addColumn("Volo");
+        model.addColumn("Codice Biglietto");
 
         model.addColumn("Codice Bagaglio");
-        model.addColumn("Volo");
         model.addColumn("Stato");
         model.addColumn("Azioni");
 
          baggageTable = new JTable(model);
         updateBaggageTable(baggageTable);
         // Set custom renderer for the status column
-        baggageTable.getColumnModel().getColumn(2).setCellRenderer(new DefaultTableCellRenderer() {
+        baggageTable.getColumnModel().getColumn(3).setCellRenderer(new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
                 Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
@@ -724,7 +732,7 @@ public class UserDashboard extends JFrame {
         });
 
         // Set custom renderer for the action column
-        baggageTable.getColumnModel().getColumn(3).setCellRenderer(new DefaultTableCellRenderer() {
+        baggageTable.getColumnModel().getColumn(4).setCellRenderer(new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
                 JButton button = new JButton("Segnala Smarrimento");
@@ -740,8 +748,8 @@ public class UserDashboard extends JFrame {
                 int row = baggageTable.rowAtPoint(evt.getPoint());
                 int col = baggageTable.columnAtPoint(evt.getPoint());
 
-                if (row >= 0 && col == 3) { // Action column
-                    String baggageCode = (String) baggageTable.getValueAt(row, 0);
+                if (row >= 0 && col == 4) { // Action column
+                    String baggageCode = (String) baggageTable.getValueAt(row, 2);
                     reportLostBaggageFromTable(baggageCode, row, baggageTable);
                 }
             }
@@ -780,11 +788,15 @@ public class UserDashboard extends JFrame {
         for (Bagaglio baggage : baggages) {
             // Find the booking that contains this baggage
             String flightInfo = "N/A";
+            String tckInfo = "N/A";
+
             for (Prenotazione booking : bookings) {
+
                 if (booking.getBagagli() != null) {
                     for (Bagaglio b : booking.getBagagli()) {
                         if (b.getCodice().equals(baggage.getCodice())) {
-                            flightInfo = "Prenotazione: " + booking.getCodiceVolo();
+                            flightInfo = booking.getCodiceVolo();
+                            tckInfo = booking.getNumeroBiglietto();
                             break;
                         }
                     }
@@ -798,8 +810,9 @@ public class UserDashboard extends JFrame {
             }
 
             model.addRow(new Object[]{
+                    flightInfo,
+                    tckInfo,
                 baggage.getCodice(),
-                flightInfo,
                 status,
                 "Segnala Smarrimento"
             });

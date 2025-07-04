@@ -59,4 +59,8 @@ public interface PostgresDAO {
     List<Bagaglio> getBagagliByUtente(Utente user);
 List<Prenotazione> getPrenotazioneByUtente(Utente utente);
      List<Posto> getPostiByVolo(String coidceVolo);
+    Prenotazione getPrenotazioneByBagaglio(String codice_bagaglio);
+
+
+
 }
