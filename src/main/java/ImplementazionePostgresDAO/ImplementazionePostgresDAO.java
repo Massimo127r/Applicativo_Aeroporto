@@ -732,14 +732,70 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
 
 
     @Override
-    public boolean updatePrenotazione(StatoPrenotazione prenotazione, String numeroBiglietto) {
-        String query = "UPDATE prenotazione SET stato = ? WHERE numero_biglietto = ?";
-        try (Connection conn = ConnessioneDatabase.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query)) {
-            stmt.setString(1, String.valueOf(prenotazione));
-            stmt.setString(2, numeroBiglietto);
-            return stmt.executeUpdate() > 0;
-        } catch (SQLException e) {
+    public boolean updatePrenotazione(StatoPrenotazione nuovoStato, String numeroBiglietto) {
+        // query principali
+        String sqlUpdatePren =
+                "UPDATE prenotazione SET stato = ? WHERE numero_biglietto = ?";
+        String sqlSelectInfo =
+                "SELECT codice_volo, posto FROM prenotazione WHERE numero_biglietto = ?";
+        String sqlUpdateVolo =
+                "UPDATE volo SET posti_disponibili = posti_disponibili + ? WHERE codice = ?";
+        String sqlUpdatePosto =
+                "UPDATE posto SET occupato = ? WHERE codice_volo = ? AND posto = ?";
+
+        try (Connection conn = ConnessioneDatabase.getConnection()) {
+            conn.setAutoCommit(false);
+
+            try (
+                    // 1) aggiorno lo stato della prenotazione
+                    PreparedStatement psPren = conn.prepareStatement(sqlUpdatePren);
+                    // 2) recupero info necessario solo se devo cancellare
+                    PreparedStatement psInfo = conn.prepareStatement(sqlSelectInfo);
+                    // 3) statement per volo e posto
+                    PreparedStatement psVolo = conn.prepareStatement(sqlUpdateVolo);
+                    PreparedStatement psPosto = conn.prepareStatement(sqlUpdatePosto);
+            ) {
+                // ---- UPDATE prenotazione ----
+                psPren.setString(1, nuovoStato.name());
+                psPren.setString(2, numeroBiglietto);
+                int updated = psPren.executeUpdate();
+                if (updated == 0) {
+                    conn.rollback();
+                    return false;
+                }
+
+                // ---- se lo stato è cancellato ----
+                if (nuovoStato == StatoPrenotazione.cancellato) {
+                    // leggo codice_volo e posto dalla prenotazione
+                    psInfo.setString(1, numeroBiglietto);
+                    try (ResultSet rs = psInfo.executeQuery()) {
+                        if (rs.next()) {
+                            String codiceVolo = rs.getString("codice_volo");
+                            String seat      = rs.getString("posto");
+
+                            // aggiorno volo: +1 posto disponibile
+                            psVolo.setInt(1, 1);
+                            psVolo.setString(2, codiceVolo);
+                            psVolo.executeUpdate();
+
+                            // aggiorno posto: occupato = false
+                            psPosto.setBoolean(1, false);
+                            psPosto.setString(2, codiceVolo);
+                            psPosto.setString(3, seat);
+                            psPosto.executeUpdate();
+                        }
+                    }
+                }
+
+                conn.commit();
+                return true;
+            }
+            catch (SQLException ex) {
+                conn.rollback();
+                throw ex;
+            }
+        }
+        catch (SQLException e) {
             System.err.println("Errore durante l'aggiornamento della prenotazione: " + e.getMessage());
             return false;
         }
@@ -872,7 +928,7 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
                 "UPDATE bagaglio b " +
                         "SET stato = ? " +
                         "FROM prenotazione p " +
-                        "WHERE p.id = b.id_prenotazione " +
+                        "WHERE p.id_prenotazione = b.id_prenotazione " +
                         "  AND p.codice_volo = ?";
 
         try (Connection conn = ConnessioneDatabase.getConnection();

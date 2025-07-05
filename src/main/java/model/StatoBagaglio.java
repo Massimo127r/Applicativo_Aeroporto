@@ -1,5 +1,5 @@
 package model;
 
 public enum StatoBagaglio {
-    caricato, ritirabile, smarrito;
+    inElaborazione, caricato, ritirabile, smarrito;
 }

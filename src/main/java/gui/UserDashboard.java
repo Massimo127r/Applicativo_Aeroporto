@@ -9,10 +9,8 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Comparator;
+import java.util.*;
 import java.util.List;
-import java.util.Random;
 
 public class UserDashboard extends JFrame {
     private JPanel mainPanel;
@@ -463,7 +461,7 @@ public class UserDashboard extends JFrame {
             baggageInfo.append("\n\nID Bagagli:");
             for (int i = 0; i < baggageCount; i++) {
                 String baggageCode = "BAG" + ticketNumber + "-" + (i + 1);
-                Bagaglio baggage = new Bagaglio(baggageCode, StatoBagaglio.caricato);
+                Bagaglio baggage = new Bagaglio(baggageCode, StatoBagaglio.inElaborazione);
                 bookingBaggages.add(baggage);
                 baggages.add(baggage);
                 baggageInfo.append("\n- ").append(baggageCode);
@@ -488,6 +486,169 @@ public class UserDashboard extends JFrame {
             "Prenotazione effettuata con successo!\nNumero Biglietto: " + ticketNumber + baggageInfo.toString(),
             "Prenotazione Confermata", JOptionPane.INFORMATION_MESSAGE);
     }
+
+    /**
+     * Displays a dialog for seat selection and returns the selected seat
+     * @param flightCode The code of the flight to select a seat for
+     * @return The selected seat or null if no seat was selected
+     */
+    private String selectSeat(String flightCode) {
+        // 1) Trova il volo in memoria
+        Volo selectedFlight = flights.stream()
+                .filter(v -> v.getCodiceVolo().equals(flightCode))
+                .findFirst()
+                .orElse(null);
+
+        if (selectedFlight == null) {
+            JOptionPane.showMessageDialog(this,
+                    "Volo non trovato",
+                    "Errore",
+                    JOptionPane.ERROR_MESSAGE);
+            return null;
+        }
+
+        // 2) Carica i posti dal controller
+        List<Posto> posti;
+        try {
+            posti = controller.getPostiByVolo(flightCode);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this,
+                    "Errore caricamento posti: " + ex.getMessage(),
+                    "Errore DB",
+                    JOptionPane.ERROR_MESSAGE);
+            return null;
+        }
+
+        // 3) Ordina per fila e lettera
+        posti.sort(Comparator.comparing(Posto::getSeatNumber, (a, b) -> {
+            int filaA = Integer.parseInt(a.replaceAll("\\D", ""));
+            int filaB = Integer.parseInt(b.replaceAll("\\D", ""));
+            if (filaA != filaB) return filaA - filaB;
+            return a.replaceAll("\\d", "").charAt(0) - b.replaceAll("\\d", "").charAt(0);
+        }));
+
+        // 4) Costruisci il dialog
+        JDialog seatDialog = new JDialog(this, "Seleziona Posto - Volo " + flightCode, true);
+        seatDialog.setSize(700, 600);
+        seatDialog.setLocationRelativeTo(this);
+
+        JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        mainPanel.add(new JLabel(
+                        "Volo: " + flightCode + " - Posti disponibili: " + selectedFlight.getPostiDisponibili()),
+                BorderLayout.NORTH);
+
+        JPanel airplanePanel = new JPanel(new BorderLayout(10,10));
+        airplanePanel.setBorder(BorderFactory.createTitledBorder("Seleziona un posto disponibile"));
+
+        // 5) Griglia con corridoio (sempre visibile)
+        int cols = 6;
+        int rows = (int) Math.ceil(posti.size() / (double) cols);
+        JPanel seatGrid = new JPanel(new GridLayout(rows, cols + 1, 5, 5));
+
+        final String[] selectedSeat = {null};
+
+        // 5.a) Pre-crea tutti i bottoni in una lista
+        List<JButton> buttons = new ArrayList<>();
+        for (Posto p : posti) {
+            String seatNumber = p.getSeatNumber();
+            JButton btn = new JButton(seatNumber);
+            btn.setPreferredSize(new Dimension(60, 40));
+            if (p.isOccupato()) {
+                btn.setEnabled(false);
+                btn.setBackground(Color.RED);
+                btn.setText(seatNumber + " (X)");
+            } else {
+                btn.setBackground(Color.GREEN);
+                btn.addActionListener(e -> {
+                    // deseleziona vecchio
+                    if (selectedSeat[0] != null) {
+                        for (Component c : seatGrid.getComponents()) {
+                            if (c instanceof JButton old &&
+                                    old.getText().startsWith(selectedSeat[0]) &&
+                                    old.isEnabled()) {
+                                old.setBackground(Color.GREEN);
+                                old.setText(selectedSeat[0]);
+                            }
+                        }
+                    }
+                    // seleziona nuovo
+                    selectedSeat[0] = seatNumber;
+                    btn.setBackground(Color.BLUE);
+                    btn.setText(seatNumber + " (✓)");
+                });
+            }
+            buttons.add(btn);
+        }
+
+        // 5.b) Popola la griglia cella per cella senza iterator
+        int btnIndex = 0;
+        for (int r = 0; r < rows; r++) {
+            for (int c = 0; c < cols + 1; c++) {
+                if (c == 3) {
+                    // colonna corridoio sempre grigia
+                    JPanel aisle = new JPanel();
+                    aisle.setBackground(Color.LIGHT_GRAY);
+                    seatGrid.add(aisle);
+                } else if (btnIndex < buttons.size()) {
+                    seatGrid.add(buttons.get(btnIndex));
+                    btnIndex++;
+                } else {
+                    // riempitivo trasparente per completare la row
+                    JPanel empty = new JPanel();
+                    empty.setOpaque(false);
+                    seatGrid.add(empty);
+                }
+            }
+        }
+
+        // 6) Scroll pane per la griglia
+        JScrollPane scrollPane = new JScrollPane(seatGrid,
+                JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+                JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        airplanePanel.add(scrollPane, BorderLayout.CENTER);
+
+        // 7) Legend
+        JPanel legend = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 5));
+        legend.add(new JLabel("Libero", JLabel.LEFT));
+        legend.add(createLegendBox(Color.GREEN));
+        legend.add(new JLabel("Occupato", JLabel.LEFT));
+        legend.add(createLegendBox(Color.RED));
+        legend.add(new JLabel("Selezionato", JLabel.LEFT));
+        legend.add(createLegendBox(Color.BLUE));
+        airplanePanel.add(legend, BorderLayout.NORTH);
+
+        // 8) Footer con pulsanti
+        JPanel footer = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
+        JButton confirm = new JButton("Conferma");
+        confirm.addActionListener(e -> {
+            if (selectedSeat[0] != null) {
+                seatDialog.dispose();
+            } else {
+                JOptionPane.showMessageDialog(seatDialog,
+                        "Seleziona un posto prima di confermare",
+                        "Avviso",
+                        JOptionPane.WARNING_MESSAGE);
+            }
+        });
+        JButton cancel = new JButton("Annulla");
+        cancel.addActionListener(e -> {
+            selectedSeat[0] = null;
+            seatDialog.dispose();
+        });
+        footer.add(confirm);
+        footer.add(cancel);
+
+        // Assemblo tutto
+        mainPanel.add(airplanePanel, BorderLayout.CENTER);
+        mainPanel.add(footer, BorderLayout.SOUTH);
+        seatDialog.setContentPane(mainPanel);
+        seatDialog.setVisible(true);
+
+        return selectedSeat[0];
+    }
+
+
 
     private void updateBookingsTable() {
         DefaultTableModel model = (DefaultTableModel) bookingsTable.getModel();
@@ -827,10 +988,10 @@ public class UserDashboard extends JFrame {
      */
     private void reportLostBaggageFromTable(String baggageCode, int row, JTable baggageTable) {
         // Show dialog for description
-        int description = JOptionPane.showConfirmDialog(this,
-            "Sei sicuro di voler segnalare questo bagaglio come smarrito?");
+        int scelta = JOptionPane.showConfirmDialog(this,
+            "Sei sicuro di voler segnalare questo bagaglio come smarrito?" ,"Conferma", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
 
-        if (description == 0 ) {
+        if (scelta == JOptionPane.YES_OPTION) {
             JOptionPane.showMessageDialog(this,
                 "Segnalazione inviata con successo!\nUn operatore ti contatterà al più presto.",
                 "Segnalazione Inviata",
@@ -875,34 +1036,7 @@ public class UserDashboard extends JFrame {
         }
     }
 
-    private void reportLostBaggage() {
-        String code = baggageCodeField.getText();
 
-        // Show dialog for description
-        String description = JOptionPane.showInputDialog(this,
-            "Inserisci una descrizione del bagaglio smarrito:",
-            "Segnalazione Smarrimento",
-            JOptionPane.PLAIN_MESSAGE);
-
-        if (description != null && !description.isEmpty()) {
-            JOptionPane.showMessageDialog(this,
-                "Segnalazione inviata con successo!\nUn operatore ti contatterà al più presto.",
-                "Segnalazione Inviata",
-                JOptionPane.INFORMATION_MESSAGE);
-
-            // Update the baggage status in the database
-            for (Bagaglio baggage : baggages) {
-                if (baggage.getCodice().equals(code)) {
-                    // Set the baggage status to "smarrito"
-                    baggage.setStato(StatoBagaglio.smarrito);
-                    // Update the status label
-                    baggageStatusLabel.setText("Stato: Smarrimento segnalato");
-                    baggageStatusLabel.setForeground(Color.RED);
-                    break;
-                }
-            }
-        }
-    }
 
     /**
      * Shows a dialog with baggage details for a booking
@@ -933,152 +1067,6 @@ public class UserDashboard extends JFrame {
             panel,
             "Dettagli Bagagli",
             JOptionPane.INFORMATION_MESSAGE);
-    }
-
-    /**
-     * Displays a dialog for seat selection and returns the selected seat
-     * @param flightCode The code of the flight to select a seat for
-     * @return The selected seat or null if no seat was selected
-     */
-    private String selectSeat(String flightCode) {
-        // 1) Trova il volo in memoria
-        Volo selectedFlight = flights.stream()
-                .filter(v -> v.getCodiceVolo().equals(flightCode))
-                .findFirst()
-                .orElse(null);
-
-        if (selectedFlight == null) {
-            JOptionPane.showMessageDialog(this,
-                    "Volo non trovato",
-                    "Errore",
-                    JOptionPane.ERROR_MESSAGE);
-            return null;
-        }
-
-        // 2) Carica i posti dal controller
-        List<Posto> posti;
-        try {
-            posti = controller.getPostiByVolo(flightCode);
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this,
-                    "Errore caricamento posti: " + ex.getMessage(),
-                    "Errore DB",
-                    JOptionPane.ERROR_MESSAGE);
-            return null;
-        }
-
-        // 3) Ordina per fila e lettera
-        posti.sort(Comparator.comparing(Posto::getSeatNumber, (a, b) -> {
-            int filaA = Integer.parseInt(a.replaceAll("\\D", ""));
-            int filaB = Integer.parseInt(b.replaceAll("\\D", ""));
-            if (filaA != filaB) return filaA - filaB;
-            return a.replaceAll("\\d", "").charAt(0) - b.replaceAll("\\d", "").charAt(0);
-        }));
-
-        // 4) Costruisci il dialog
-        JDialog seatDialog = new JDialog(this, "Seleziona Posto - Volo " + flightCode, true);
-        seatDialog.setSize(700, 600);
-        seatDialog.setLocationRelativeTo(this);
-
-        JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
-        mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        mainPanel.add(new JLabel(
-                        "Volo: " + flightCode + " - Posti disponibili: " + selectedFlight.getPostiDisponibili()),
-                BorderLayout.NORTH);
-
-        // --- Qui dichiariamo di nuovo airplanePanel ---
-        JPanel airplanePanel = new JPanel(new BorderLayout(10,10));
-        airplanePanel.setBorder(BorderFactory.createTitledBorder("Seleziona un posto disponibile"));
-
-        // 5) Griglia con corridoio
-        int cols = 6;
-        int rows = (int) Math.ceil(posti.size() / (double) cols);
-        JPanel seatGrid = new JPanel(new GridLayout(rows, cols + 1, 5, 5));
-
-        final String[] selectedSeat = {null};
-        int countInRow = 0;
-
-        for (Posto p : posti) {
-            if (countInRow == 3) {
-                seatGrid.add(Box.createHorizontalStrut(20));
-            }
-
-            String seatNumber = p.getSeatNumber();
-            JButton btn = new JButton(seatNumber);
-            btn.setPreferredSize(new Dimension(60, 40));
-
-            if (p.isOccupato()) {
-                btn.setEnabled(false);
-                btn.setBackground(Color.RED);
-                btn.setText(seatNumber + " (X)");
-            } else {
-                btn.setBackground(Color.GREEN);
-                btn.addActionListener(e -> {
-                    if (selectedSeat[0] != null) {
-                        for (Component c : seatGrid.getComponents()) {
-                            if (c instanceof JButton old &&
-                                    old.getText().startsWith(selectedSeat[0]) &&
-                                    old.isEnabled()) {
-                                old.setBackground(Color.GREEN);
-                                old.setText(selectedSeat[0]);
-                            }
-                        }
-                    }
-                    selectedSeat[0] = seatNumber;
-                    btn.setBackground(Color.BLUE);
-                    btn.setText(seatNumber + " (✓)");
-                });
-            }
-
-            seatGrid.add(btn);
-            countInRow++;
-            if (countInRow == cols) countInRow = 0;
-        }
-
-        // 6) Scroll pane per la griglia
-        JScrollPane scrollPane = new JScrollPane(seatGrid,
-                JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
-                JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        airplanePanel.add(scrollPane, BorderLayout.CENTER);
-
-        // 7) Legend
-        JPanel legend = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 5));
-        legend.add(new JLabel("Libero", JLabel.LEFT));
-        legend.add(createLegendBox(Color.GREEN));
-        legend.add(new JLabel("Occupato", JLabel.LEFT));
-        legend.add(createLegendBox(Color.RED));
-        legend.add(new JLabel("Selezionato", JLabel.LEFT));
-        legend.add(createLegendBox(Color.BLUE));
-        airplanePanel.add(legend, BorderLayout.NORTH);
-
-        // 8) Footer con pulsanti
-        JPanel footer = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
-        JButton confirm = new JButton("Conferma");
-        confirm.addActionListener(e -> {
-            if (selectedSeat[0] != null) {
-                seatDialog.dispose();
-            } else {
-                JOptionPane.showMessageDialog(seatDialog,
-                        "Seleziona un posto prima di confermare",
-                        "Avviso",
-                        JOptionPane.WARNING_MESSAGE);
-            }
-        });
-        JButton cancel = new JButton("Annulla");
-        cancel.addActionListener(e -> {
-            selectedSeat[0] = null;
-            seatDialog.dispose();
-        });
-        footer.add(confirm);
-        footer.add(cancel);
-
-        // Assemblo tutto
-        mainPanel.add(airplanePanel, BorderLayout.CENTER);
-        mainPanel.add(footer, BorderLayout.SOUTH);
-        seatDialog.setContentPane(mainPanel);
-        seatDialog.setVisible(true);
-
-        return selectedSeat[0];
     }
 
     /**

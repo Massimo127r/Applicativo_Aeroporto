@@ -164,7 +164,45 @@ public class Registration extends JFrame {
                 ((JLabel) comp).setForeground(UIManager.TEXT_COLOR);
             }
         }
-
+// 3) Imposta gli InputVerifier
+        usernameField.setInputVerifier(new InputVerifier() {
+            @Override
+            public boolean verify(JComponent input) {
+                String txt = ((JTextField)input).getText().trim();
+                if (txt.length() < 4 || !txt.matches("[A-Za-z0-9_]+")) {
+                    statusLabel.setText("Username: minimo 4 caratteri alfanumerici");
+                    return false;
+                }
+                statusLabel.setText("");
+                return true;
+            }
+        });
+        passwordField.setInputVerifier(new InputVerifier() {
+            @Override
+            public boolean verify(JComponent input) {
+                String pwd = new String(((JPasswordField)input).getPassword());
+                if (pwd.length() < 6) {
+                    statusLabel.setText("Password troppo corta (min 6 caratteri)");
+                    return false;
+                }
+                statusLabel.setText("");
+                return true;
+            }
+        });
+        nomeField.setInputVerifier(new InputVerifier() {
+            @Override
+            public boolean verify(JComponent input) {
+                String n = ((JTextField)input).getText().trim();
+                if (!n.matches("[A-Za-zàèéìòùĀ-ž ]+")) {
+                    statusLabel.setText("Errore Nome e Cognome devono contenere solo lettere");
+                    return false;
+                }
+                statusLabel.setText("");
+                return true;
+            }
+        });
+// cognome ha stessa regola di nome
+        cognomeField.setInputVerifier(nomeField.getInputVerifier());
         // Style status label
         statusLabel.setForeground(UIManager.ERROR_COLOR);
 
@@ -192,12 +230,30 @@ public class Registration extends JFrame {
         String password = new String(passwordField.getPassword());
         String nome = nomeField.getText();
         String cognome = cognomeField.getText();
+        // 1) Forza la verifica di TUTTI i campi
 
-        // Validate input
         if (username.isEmpty() || password.isEmpty() || nome.isEmpty() || cognome.isEmpty()) {
             statusLabel.setText("Tutti i campi sono obbligatori");
             return;
         }
+        if (!usernameField.getInputVerifier().verify(usernameField)) {
+            usernameField.requestFocus();
+            return;
+        }
+        if (!passwordField.getInputVerifier().verify(passwordField)) {
+            passwordField.requestFocus();
+            return;
+        }
+        if (!nomeField.getInputVerifier().verify(nomeField)) {
+            nomeField.requestFocus();
+            return;
+        }
+        if (!cognomeField.getInputVerifier().verify(cognomeField)) {
+            cognomeField.requestFocus();
+            return;
+        }
+        // Validate input
+
 
         // User role is always "generico" since only "Utente" is available
         String userRole = "generico";

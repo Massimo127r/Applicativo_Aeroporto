@@ -1125,7 +1125,7 @@ public class AdminDashboard extends JFrame {
     private void showCollectiveBaggageManagementDialog(Volo flight, JTable bookingsTable) {
         // Create a dialog
         JDialog dialog = new JDialog(this, "Gestione Collettiva Bagagli: " + flight.getCodiceVolo(), true);
-        dialog.setSize(400, 300);
+        dialog.setSize(400, 350);
         dialog.setLocationRelativeTo(this);
 
         // Create main panel with BorderLayout
@@ -1143,7 +1143,7 @@ public class AdminDashboard extends JFrame {
         // Get total baggage count from the bookings table
         int totalBaggage = 0;
         for (int i = 0; i < bookingsTable.getRowCount(); i++) {
-            totalBaggage += Integer.parseInt(bookingsTable.getValueAt(i, 4).toString());
+            totalBaggage += Integer.parseInt(bookingsTable.getValueAt(i, 5).toString());
         }
 
         infoPanel.add(new JLabel("Totale Bagagli: " + totalBaggage));
@@ -1295,6 +1295,7 @@ public class AdminDashboard extends JFrame {
                 bookingsTable.setValueAt(statusDisplay, row, 4);
 
                 controller.aggiornaPrenotazione(selectedStatus, ticketNumber);
+                refreshFlightsTable();
 
                 JOptionPane.showMessageDialog(dialog,
                     "Prenotazione aggiornata con successo",
@@ -1353,25 +1354,6 @@ public class AdminDashboard extends JFrame {
         JScrollPane baggageScrollPane = new JScrollPane(baggageTable);
         baggageScrollPane.setBorder(BorderFactory.createTitledBorder("Bagagli"));
         baggagePanel.add(baggageScrollPane, BorderLayout.CENTER);
-
-        // Add save button for baggage
-        /*JPanel baggageSavePanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        JButton saveBaggageButton = new JButton("Salva Modifiche Bagagli");
-        saveBaggageButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                // In a real application, we would update the database here
-
-                JOptionPane.showMessageDialog(dialog,
-                    "Stato dei bagagli aggiornato con successo",
-                    "Successo", JOptionPane.INFORMATION_MESSAGE);
-            }
-        });
-
-
-        baggageSavePanel.add(saveBaggageButton);
-        baggagePanel.add(baggageSavePanel, BorderLayout.SOUTH);
- */
 
         // Add tabs
         dialogTabs.addTab("Prenotazione", bookingPanel);
