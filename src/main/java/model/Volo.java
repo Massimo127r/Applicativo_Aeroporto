@@ -2,7 +2,6 @@ package model;
 
 import java.time.LocalDate;
 
-
 public class Volo {
     private String codiceVolo;
     private String compagnia;
@@ -14,13 +13,14 @@ public class Volo {
     private int tempoRitardo;
     private int postiTotali;
     private int postiDisponibili;
-private int gate;
+    private static final String NAPOLI = "Napoli";
+
+    private int gate;
 
     public Volo(String codiceVolo, String compagnia, String origine, String destinazione,
                 String orarioPrevisto, StatoVolo stato, LocalDate data, int tempoRitardo,
                 int postiTotali, int postiDisponibili, int gate) {
-        // Validazione: almeno uno tra origine e destinazione deve essere Napoli
-        if (!origine.equalsIgnoreCase("Napoli") && !destinazione.equalsIgnoreCase("Napoli")) {
+        if (!origine.equalsIgnoreCase(NAPOLI) && !destinazione.equalsIgnoreCase(NAPOLI)) {
             throw new IllegalArgumentException("Almeno uno tra origine e destinazione deve essere Napoli");
         }
 
@@ -31,71 +31,114 @@ private int gate;
         this.orarioPrevisto = orarioPrevisto;
         this.stato = stato;
         this.data = data;
-        setTempoRitardo(tempoRitardo); // Using setter to ensure validation
+        setTempoRitardo(tempoRitardo);
         this.postiTotali = postiTotali;
         this.postiDisponibili = postiDisponibili;
         this.gate = gate;
     }
 
 
+    public String getCodiceVolo() {
+        return codiceVolo;
+    }
 
-    public String getCodiceVolo() { return codiceVolo; }
-    public void setCodiceVolo(String codiceVolo) { this.codiceVolo = codiceVolo; }
+    public void setCodiceVolo(String codiceVolo) {
+        this.codiceVolo = codiceVolo;
+    }
 
-    public String getCompagnia() { return compagnia; }
-    public void setCompagnia(String compagnia) { this.compagnia = compagnia; }
+    public String getCompagnia() {
+        return compagnia;
+    }
 
-    public String getOrigine() { return origine; }
-    public void setOrigine(String origine) { 
-        // Se l'origine era Napoli, non può essere cambiata
-        if (this.origine != null && this.origine.equalsIgnoreCase("Napoli") && !origine.equalsIgnoreCase("Napoli")) {
+    public void setCompagnia(String compagnia) {
+        this.compagnia = compagnia;
+    }
+
+    public String getOrigine() {
+        return origine;
+    }
+
+    public void setOrigine(String origine) {
+        if (this.origine != null && this.origine.equalsIgnoreCase(NAPOLI) && !origine.equalsIgnoreCase(NAPOLI)) {
             throw new IllegalArgumentException("L'origine non può essere cambiata da Napoli ad un'altra città");
         }
 
-        // Se la destinazione non è Napoli, l'origine deve essere Napoli
-        if (this.destinazione != null && !this.destinazione.equalsIgnoreCase("Napoli") && !origine.equalsIgnoreCase("Napoli")) {
+        if (this.destinazione != null && !this.destinazione.equalsIgnoreCase(NAPOLI) && !origine.equalsIgnoreCase(NAPOLI)) {
             throw new IllegalArgumentException("Almeno uno tra origine e destinazione deve essere Napoli");
         }
 
-        this.origine = origine; 
+        this.origine = origine;
     }
 
-    public String getDestinazione() { return destinazione; }
-    public void setDestinazione(String destinazione) { 
-        // Se la destinazione era Napoli, non può essere cambiata
-        if (this.destinazione != null && this.destinazione.equalsIgnoreCase("Napoli") && !destinazione.equalsIgnoreCase("Napoli")) {
+    public String getDestinazione() {
+        return destinazione;
+    }
+
+    public void setDestinazione(String destinazione) {
+        if (this.destinazione != null && this.destinazione.equalsIgnoreCase(NAPOLI) && !destinazione.equalsIgnoreCase(NAPOLI)) {
             throw new IllegalArgumentException("La destinazione non può essere cambiata da Napoli ad un'altra città");
         }
 
-        // Se l'origine non è Napoli, la destinazione deve essere Napoli
-        if (this.origine != null && !this.origine.equalsIgnoreCase("Napoli") && !destinazione.equalsIgnoreCase("Napoli")) {
+        if (this.origine != null && !this.origine.equalsIgnoreCase(NAPOLI) && !destinazione.equalsIgnoreCase(NAPOLI)) {
             throw new IllegalArgumentException("Almeno uno tra origine e destinazione deve essere Napoli");
         }
 
-        this.destinazione = destinazione; 
+        this.destinazione = destinazione;
     }
 
-    public String getOrarioPrevisto() { return orarioPrevisto; }
-    public void setOrarioPrevisto(String orarioPrevisto) { this.orarioPrevisto = orarioPrevisto; }
-
-    public StatoVolo getStato() { return stato; }
-    public void setStato(StatoVolo stato) { this.stato = stato; }
-
-    public LocalDate getData() { return data; }
-    public void setData(LocalDate data) { this.data = data; }
-
-    public int getTempoRitardo() { return tempoRitardo; }
-    public void setTempoRitardo(int tempoRitardo) { 
-        // Il ritardo di un volo non può essere negativo ma deve essere ≥ 0
-        this.tempoRitardo = tempoRitardo < 0 ? 0 : tempoRitardo; 
+    public String getOrarioPrevisto() {
+        return orarioPrevisto;
     }
 
-    public int getPostiTotali() { return postiTotali; }
-    public void setPostiTotali(int postiTotali) { this.postiTotali = postiTotali; }
+    public void setOrarioPrevisto(String orarioPrevisto) {
+        this.orarioPrevisto = orarioPrevisto;
+    }
 
-    public int getPostiDisponibili() { return postiDisponibili; }
-    public void setPostiDisponibili(int postiDisponibili) { this.postiDisponibili = postiDisponibili; }
+    public StatoVolo getStato() {
+        return stato;
+    }
 
-    public int getGate() { return gate; }
-    public void setGate(int gate) { this.gate = gate; }
+    public void setStato(StatoVolo stato) {
+        this.stato = stato;
+    }
+
+    public LocalDate getData() {
+        return data;
+    }
+
+    public void setData(LocalDate data) {
+        this.data = data;
+    }
+
+    public int getTempoRitardo() {
+        return tempoRitardo;
+    }
+
+    public void setTempoRitardo(int tempoRitardo) {
+        this.tempoRitardo = Math.max(0, tempoRitardo);
+    }
+
+    public int getPostiTotali() {
+        return postiTotali;
+    }
+
+    public void setPostiTotali(int postiTotali) {
+        this.postiTotali = postiTotali;
+    }
+
+    public int getPostiDisponibili() {
+        return postiDisponibili;
+    }
+
+    public void setPostiDisponibili(int postiDisponibili) {
+        this.postiDisponibili = postiDisponibili;
+    }
+
+    public int getGate() {
+        return gate;
+    }
+
+    public void setGate(int gate) {
+        this.gate = gate;
+    }
 }

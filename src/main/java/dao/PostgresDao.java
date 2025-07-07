@@ -1,42 +1,26 @@
-package DAO;
+package dao;
 
 import model.*;
 
 import java.util.List;
 
-public interface PostgresDAO {
-    // Metodi per Utente
+public interface PostgresDao {
+
     Utente getUtenteByCredentialsAndType(String login, String password, String tipo);
 
     boolean insertUtente(Utente utente, String tipo);
 
-    // Metodi per Volo
     List<Volo> getAllVoli();
-
-    Volo getVoloByCodice(String codiceVolo);
 
     boolean insertVolo(Volo volo);
 
     boolean updateVolo(Volo volo);
 
-    // Metodi per Gate
     List<Gate> getAllGates();
 
     boolean assignGateToFlight(int codiceGate, String codiceVolo);
 
-    // Metodi per Passeggero
-    Passeggero getPasseggeroByDocumento(String nDocumento);
-
-    boolean insertPasseggero(Passeggero passeggero);
-
     boolean updatePasseggeroInPrenotazione(String numeroBiglietto, String nome, String cognome, String nDocumento);
-
-    // Metodi per Prenotazione
-    List<Prenotazione> getAllPrenotazioni();
-
-    Prenotazione getPrenotazioneByNumeroBiglietto(String numeroBiglietto);
-
-    List<Prenotazione> getPrenotazioniByPasseggero(String nome, String cognome);
 
     List<Prenotazione> getPrenotazioniByVolo(Volo volo);
 
@@ -44,25 +28,23 @@ public interface PostgresDAO {
 
     boolean updatePrenotazione(StatoPrenotazione prenotazione, String numeroBiglietto);
 
-    // Metodi per Bagaglio
     List<Bagaglio> getAllBagagli();
 
     List<Bagaglio> getBagagliByPrenotazione(String numeroBiglietto);
 
     Bagaglio getBagaglioByCodice(String codice);
 
-    boolean insertBagaglio(Bagaglio bagaglio, String numeroBiglietto);
-
     boolean updateBagaglio(Bagaglio bagaglio);
 
     boolean updateBagagliByVolo(String codiceVolo, StatoBagaglio nuovoStato);
 
-    List<Bagaglio> getBagagliSmarriti();
     List<Bagaglio> getBagagliByUtente(Utente user);
-List<Prenotazione> getPrenotazioneByUtente(Utente utente);
-     List<Posto> getPostiByVolo(String coidceVolo);
-    Prenotazione getPrenotazioneByBagaglio(String codice_bagaglio);
 
+    List<Prenotazione> getPrenotazioneByUtente(Utente utente);
+
+    List<Posto> getPostiByVolo(String coidceVolo);
+
+    Prenotazione getPrenotazioneByBagaglio(String codcieBagaglio);
 
 
 }

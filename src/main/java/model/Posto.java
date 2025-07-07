@@ -1,11 +1,6 @@
 package model;
 
-import java.util.Objects;
 
-/**
- * Rappresenta un posto a sedere associato a un volo.
- * La chiave primaria è composta da codiceVolo e seatNumber.
- */
 public class Posto {
     private String codiceVolo;
     private String seatNumber;
@@ -45,10 +40,6 @@ public class Posto {
     public void setOccupato(boolean occupato) {
         this.occupato = occupato;
     }
-
-
-
-
 
 
 }

@@ -1,56 +1,38 @@
 package controller;
 
-import DAO.PostgresDAO;
-import ImplementazionePostgresDAO.ImplementazionePostgresDAO;
+import dao.PostgresDao;
+import implementazionePostgresDao.ImplementazionePostgresDao;
 import model.*;
 
 import java.time.LocalDate;
 import java.util.List;
 
 public class Controller {
-    private final PostgresDAO dao;
+    private final PostgresDao dao;
 
     public Controller() {
-        this.dao = new ImplementazionePostgresDAO();
+        this.dao = new ImplementazionePostgresDao();
     }
 
-
-
-    /**
-     * Effettua il login verificando anche il tipo di utente
-     * @param login Nome utente
-     * @param password Password
-     * @param tipo Tipo di utente (Amministratore o Utente)
-     * @return Oggetto Utente se le credenziali sono valide e il tipo corrisponde, null altrimenti
-     */
     public Utente login(String login, String password, String tipo) {
-        // Converti il tipo in formato database (amministratore o generico)
         String tipoDb = "Amministratore".equals(tipo) ? "amministratore" : "generico";
         return dao.getUtenteByCredentialsAndType(login, password, tipoDb);
     }
 
-    /**
-     * Registra un nuovo utente nel sistema
-     * @param utente Oggetto Utente da registrare
-     * @param isAdmin True se l'utente è un amministratore, False se è un utente generico
-     * @return True se la registrazione è avvenuta con successo, False altrimenti
-     */
+
     public boolean registraUtente(Utente utente, boolean isAdmin) {
         String tipo = isAdmin ? "amministratore" : "generico";
         return dao.insertUtente(utente, tipo);
     }
-    // Metodi per la gestione dei voli
+
     public List<Volo> getAllVoli() {
         return dao.getAllVoli();
     }
 
-    public Volo getVoloByCodice(String codiceVolo) {
-        return dao.getVoloByCodice(codiceVolo);
-    }
 
     public boolean inserisciVolo(String codiceVolo, String compagnia, String origine, String destinazione,
-                                String orarioPrevisto, StatoVolo stato, LocalDate data, int tempoRitardo,  int totalSeats, int availableSeats) {
-        Volo volo = new Volo(codiceVolo, compagnia, origine, destinazione, orarioPrevisto, stato, data, tempoRitardo,totalSeats,availableSeats, 0  );
+                                 String orarioPrevisto, StatoVolo stato, LocalDate data, int tempoRitardo, int totalSeats, int availableSeats) {
+        Volo volo = new Volo(codiceVolo, compagnia, origine, destinazione, orarioPrevisto, stato, data, tempoRitardo, totalSeats, availableSeats, 0);
         return dao.insertVolo(volo);
     }
 
@@ -58,7 +40,6 @@ public class Controller {
         return dao.updateVolo(volo);
     }
 
-    // Metodi per la gestione dei gate
     public List<Gate> getAllGates() {
         return dao.getAllGates();
     }
@@ -68,22 +49,11 @@ public class Controller {
     }
 
 
-    // Metodi per la gestione delle prenotazioni
-    public List<Prenotazione> getAllPrenotazioni() {
-        return dao.getAllPrenotazioni();
-    }
     public List<Prenotazione> getPrenotazioniByVolo(Volo volo) {
-        return dao.getPrenotazioniByVolo( volo);
-    }
-    public Prenotazione getPrenotazioneByNumeroBiglietto(String numeroBiglietto) {
-        return dao.getPrenotazioneByNumeroBiglietto(numeroBiglietto);
+        return dao.getPrenotazioniByVolo(volo);
     }
 
-    public List<Prenotazione> getPrenotazioniByPasseggero(String nome, String cognome) {
-        return dao.getPrenotazioniByPasseggero(nome, cognome);
-    }
-
-    public boolean creaPrenotazione(Prenotazione prenotazione,String  codiceVolo,Utente utente) {
+    public boolean creaPrenotazione(Prenotazione prenotazione, String codiceVolo, Utente utente) {
         return dao.insertPrenotazione(prenotazione, codiceVolo, utente);
     }
 
@@ -91,7 +61,6 @@ public class Controller {
         return dao.updatePrenotazione(prenotazione, numeroBiglietto);
     }
 
-    // Metodi per la gestione dei bagagli
     public List<Bagaglio> getAllBagagli() {
         return dao.getAllBagagli();
     }
@@ -104,44 +73,33 @@ public class Controller {
         return dao.getBagaglioByCodice(codice);
     }
 
-    public boolean aggiungiBagaglio(String codice, StatoBagaglio stato, String numeroBiglietto) {
-        Bagaglio bagaglio = new Bagaglio(codice, stato);
-        return dao.insertBagaglio(bagaglio, numeroBiglietto);
-    }
 
     public boolean aggiornaBagaglio(Bagaglio bagaglio) {
         return dao.updateBagaglio(bagaglio);
     }
 
-    public boolean aggiornatAllBagagli(String codiceVolo, StatoBagaglio nuovoStato){
-        return dao.updateBagagliByVolo(codiceVolo,nuovoStato );
+    public boolean aggiornatAllBagagli(String codiceVolo, StatoBagaglio nuovoStato) {
+        return dao.updateBagagliByVolo(codiceVolo, nuovoStato);
     }
-    public List<Bagaglio> getBagagliSmarriti() {
-        return dao.getBagagliSmarriti();
-    }
-
 
     public List<Prenotazione> getPrenotazioneByUtente(Utente utente) {
         return dao.getPrenotazioneByUtente(utente);
 
     }
 
-    public List<Posto> getPostiByVolo(String coidceVolo) { return dao.getPostiByVolo(coidceVolo);}
-
-    public List<Bagaglio> getBagagliByUtente(Utente user){return dao.getBagagliByUtente(user);}
-
-    public Prenotazione getPrenotazioneByBagaglio(String codice_bagaglio) {
-        return dao.getPrenotazioneByBagaglio(codice_bagaglio);
+    public List<Posto> getPostiByVolo(String coidceVolo) {
+        return dao.getPostiByVolo(coidceVolo);
     }
 
-    /**
-     * Aggiorna le informazioni del passeggero in una prenotazione
-     * @param numeroBiglietto Numero del biglietto della prenotazione
-     * @param nome Nuovo nome del passeggero
-     * @param cognome Nuovo cognome del passeggero
-     * @param nDocumento Nuovo numero di documento del passeggero
-     * @return True se l'aggiornamento è avvenuto con successo, False altrimenti
-     */
+    public List<Bagaglio> getBagagliByUtente(Utente user) {
+        return dao.getBagagliByUtente(user);
+    }
+
+    public Prenotazione getPrenotazioneByBagaglio(String codiceBagaglio) {
+        return dao.getPrenotazioneByBagaglio(codiceBagaglio);
+    }
+
+
     public boolean updatePassengerInfo(String numeroBiglietto, String nome, String cognome, String nDocumento) {
         return dao.updatePasseggeroInPrenotazione(numeroBiglietto, nome, cognome, nDocumento);
     }

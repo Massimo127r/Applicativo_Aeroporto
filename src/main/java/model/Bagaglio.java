@@ -9,9 +9,19 @@ public class Bagaglio {
         this.stato = stato;
     }
 
-    public String getCodice() { return codice; }
-    public void setCodice(String codice) { this.codice = codice; }
+    public String getCodice() {
+        return codice;
+    }
 
-    public StatoBagaglio getStato() { return stato; }
-    public void setStato(StatoBagaglio stato) { this.stato = stato; }
+    public void setCodice(String codice) {
+        this.codice = codice;
+    }
+
+    public StatoBagaglio getStato() {
+        return stato;
+    }
+
+    public void setStato(StatoBagaglio stato) {
+        this.stato = stato;
+    }
 }

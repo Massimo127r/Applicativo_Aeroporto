@@ -1,23 +1,19 @@
-package ImplementazionePostgresDAO;
+package implementazionePostgresDao;
 
-import DAO.PostgresDAO;
-import Database.ConnessioneDatabase;
+import dao.PostgresDao;
+import database.ConnessioneDatabase;
 import model.*;
 
 import java.sql.*;
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
-public class ImplementazionePostgresDAO implements PostgresDAO {
-    // Metodi per LOGIN
+public class ImplementazionePostgresDao implements PostgresDao {
 
     public Utente getUtenteByCredentialsAndType(String login, String password, String tipo) {
         String query = "SELECT * FROM Utente WHERE username = ? AND password = ? AND ruolo = ?";
-        try (Connection conn = ConnessioneDatabase.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query)) {
+        try (Connection conn = ConnessioneDatabase.getInstance().getConnection();  PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setString(1, login);
             stmt.setString(2, password);
             stmt.setString(3, tipo.toLowerCase());
@@ -31,14 +27,15 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
             }
         } catch (SQLException e) {
             System.err.println("Errore durante il recupero dell'utente: " + e.getMessage());
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
         }
         return null;
     }
-// PER SIGNUP TODO
     @Override
     public boolean insertUtente(Utente utente, String tipo) {
         String query = "INSERT INTO Utente (username, password, nome, cognome, ruolo) VALUES (?, ?, ?, ?, ?)";
-        try (Connection conn = ConnessioneDatabase.getConnection();
+        try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setString(1, utente.getLogin());
             stmt.setString(2, utente.getPassword());
@@ -49,15 +46,16 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
         } catch (SQLException e) {
             System.err.println("Errore durante l'inserimento dell'utente: " + e.getMessage());
             return false;
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
         }
     }
 
-    // Metodi per Volo
     @Override
     public List<Volo> getAllVoli() {
         List<Volo> voli = new ArrayList<>();
         String query = "SELECT * FROM Volo ORDER BY  data DESC";
-        try (Connection conn = ConnessioneDatabase.getConnection();
+        try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(query)) {
             while (rs.next()) {
@@ -78,37 +76,12 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
             }
         } catch (SQLException e) {
             System.err.println("Errore durante il recupero dei voli: " + e.getMessage());
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
         }
         return voli;
     }
 
-    //TODO Non utilizzata
-    @Override
-    public Volo getVoloByCodice(String codiceVolo) {
-        String query = "SELECT * FROM Volo WHERE codice = ?";
-        try (Connection conn = ConnessioneDatabase.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query)) {
-            stmt.setString(1, codiceVolo);
-            try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) {
-                    String compagnia = rs.getString("compagnia");
-                    String origine = rs.getString("origine");
-                    String destinazione = rs.getString("destinazione");
-                    String orarioPrevisto = rs.getString("orario");
-                    StatoVolo stato = StatoVolo.valueOf(rs.getString("stato"));
-                    LocalDate data = rs.getDate("data").toLocalDate();
-                    int tempoRitardo = rs.getInt("ritardo");
-                    int postiTotali = rs.getInt("posti_totali");
-                    int postiDisponibili = rs.getInt("posti_disponibili");
-                    int  gate =rs.getInt("gate");
-                    return new Volo(codiceVolo, compagnia, origine, destinazione, orarioPrevisto, stato, data, tempoRitardo, postiTotali, postiDisponibili, gate);
-                }
-            }
-        } catch (SQLException e) {
-            System.err.println("Errore durante il recupero del volo: " + e.getMessage());
-        }
-        return null;
-    }
 
     @Override
     public boolean insertVolo(Volo volo) {
@@ -119,7 +92,7 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
         String sqlPosto =
                 "INSERT INTO posto (codice_volo, posto, occupato) VALUES (?, ?, false)";
 
-        try (Connection conn = ConnessioneDatabase.getConnection()) {
+        try (Connection conn = ConnessioneDatabase.getInstance().getConnection()) {
             conn.setAutoCommit(false);
 
             try (PreparedStatement psVolo = conn.prepareStatement(sqlVolo);
@@ -186,13 +159,15 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
         } catch (SQLException e) {
             System.err.println("Errore connessione/preparazione: " + e.getMessage());
             return false;
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
         }
     }
 
     @Override
     public boolean updateVolo(Volo volo) {
         String query = "UPDATE Volo SET compagnia= ?, origine = ?, destinazione = ?, orario = ?::time, stato = ?::statovolo, data = ?, ritardo = ?, posti_totali = ?, posti_disponibili = ? WHERE codice = ?";
-        try (Connection conn = ConnessioneDatabase.getConnection();
+        try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setString(1, volo.getCompagnia());
             stmt.setString(2, volo.getOrigine());
@@ -208,6 +183,8 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
         } catch (SQLException e) {
             System.err.println("Errore durante l'aggiornamento del volo: " + e.getMessage());
             return false;
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -216,7 +193,7 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
     public List<Gate> getAllGates() {
         List<Gate> gates = new ArrayList<>();
         String query = "SELECT * FROM gate";
-        try (Connection conn = ConnessioneDatabase.getConnection();
+        try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(query)) {
             while (rs.next()) {
@@ -226,6 +203,8 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
             }
         } catch (SQLException e) {
             System.err.println("Errore durante il recupero dei gate: " + e.getMessage());
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
         }
         return gates;
     }
@@ -233,7 +212,7 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
     @Override
     public boolean assignGateToFlight(int codiceGate, String codiceVolo) {
         String query = "UPDATE volo SET gate = ? WHERE codice =?";
-        try (Connection conn = ConnessioneDatabase.getConnection();
+        try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, codiceGate);
             stmt.setString(2, codiceVolo);
@@ -241,110 +220,12 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
         } catch (SQLException e) {
             System.err.println("Errore durante l'assegnazione del gate al volo: " + e.getMessage());
             return false;
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
         }
     }
 
 
-
-
-    // Metodi per Passeggero
-    @Override
-    public Passeggero getPasseggeroByDocumento(String nDocumento) {
-        String query = "SELECT * FROM passeggero WHERE numero_documento = ?";
-        try (Connection conn = ConnessioneDatabase.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query)) {
-            stmt.setString(1, nDocumento);
-            try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) {
-                    String nome = rs.getString("nome");
-                    String cognome = rs.getString("cognome");
-                    return new Passeggero(nome, cognome, nDocumento);
-                }
-            }
-        } catch (SQLException e) {
-            System.err.println("Errore durante il recupero del passeggero: " + e.getMessage());
-        }
-        return null;
-    }
-
-    @Override
-    public boolean insertPasseggero(Passeggero passeggero) {
-        String query = "INSERT INTO passeggero (nome, cognome, numero_documento) VALUES (?, ?, ?)";
-        try (Connection conn = ConnessioneDatabase.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query)) {
-            stmt.setString(1, passeggero.getNome());
-            stmt.setString(2, passeggero.getCognome());
-            stmt.setString(3, passeggero.getnDocumento());
-            return stmt.executeUpdate() > 0;
-        } catch (SQLException e) {
-            System.err.println("Errore durante l'inserimento del passeggero: " + e.getMessage());
-            return false;
-        }
-    }
-
-    // Metodi per Prenotazione
-    @Override
-    public List<Prenotazione> getAllPrenotazioni() {
-        List<Prenotazione> prenotazioniList = new ArrayList<>();
-
-        String query = "SELECT p.numero_biglietto, p., p.stato as stato_prenotazione, " +
-                "pa.nome, pa.cognome, pa.numero_documento, " +
-                "b.codice as codice_bagaglio, b.stato as stato_bagaglio " +
-                "FROM prenotazioni p " +
-                "JOIN passeggero pa ON p.id_passeggero = pa.id_passeggero " +
-                "LEFT JOIN prenotazioni_bagagli pb ON p.numero_biglietto = pb.numero_biglietto " +
-                "LEFT JOIN bagagli b ON pb.codice_bagaglio = b.codice " +
-                "ORDER BY p.numero_biglietto";
-
-        try (Connection conn = ConnessioneDatabase.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(query)) {
-
-            while (rs.next()) {
-                String numeroBiglietto = rs.getString("numero_biglietto");
-
-                // Cerco in lista una prenotazione già creata per questo biglietto
-                Prenotazione prenotazione = null;
-                for (Prenotazione p : prenotazioniList) {
-                    if (p.getNumeroBiglietto().equals(numeroBiglietto)) {
-                        prenotazione = p;
-                        break;
-                    }
-                }
-
-                // Se non esiste, la creo e la aggiungo
-                if (prenotazione == null) {
-                    String posto = rs.getString("posto");
-                    StatoPrenotazione stato = StatoPrenotazione.valueOf(rs.getString("stato_prenotazione"));
-                    String nDocumento = rs.getString("n_documento");
-                    String nome = rs.getString("nome");
-                    String cognome = rs.getString("cognome");
-
-                    Passeggero passeggero = new Passeggero(nome, cognome, nDocumento);
-                    prenotazione = new Prenotazione(numeroBiglietto, posto, stato, passeggero);
-                    prenotazione.setBagagli(new ArrayList<>());
-
-                    prenotazioniList.add(prenotazione);
-                }
-
-                // Aggiungo eventuale bagaglio
-                String codiceBagaglio = rs.getString("codice_bagaglio");
-                if (codiceBagaglio != null) {
-                    String statoBagaglioStr = rs.getString("stato_bagaglio");
-                    if (statoBagaglioStr != null) {
-                        StatoBagaglio statoBagaglio = StatoBagaglio.valueOf(statoBagaglioStr);
-                        Bagaglio bagaglio = new Bagaglio(codiceBagaglio, statoBagaglio);
-
-                        prenotazione.getBagagli().add(bagaglio);
-                    }
-                }
-            }
-        } catch (SQLException e) {
-            System.err.println("Errore durante il recupero delle prenotazioni: " + e.getMessage());
-        }
-
-        return prenotazioniList;
-    }
     @Override
     public List<Prenotazione> getPrenotazioneByUtente(Utente utente) {
         List<Prenotazione> prenotazioniList = new ArrayList<>();
@@ -368,7 +249,7 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
                 + "WHERE p.username = ? "
                 + "ORDER BY p.codice_volo";
 
-        try (Connection conn = ConnessioneDatabase.getConnection();
+        try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, utente.getLogin());
@@ -421,6 +302,8 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
         } catch (SQLException e) {
             System.err.println("Errore durante il recupero delle prenotazioni: "
                     + e.getMessage());
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
         }
 
         return prenotazioniList;
@@ -439,7 +322,7 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
                 "WHERE p.codice_volo = ? " +
                 "ORDER BY p.numero_biglietto";
 
-        try (Connection conn = ConnessioneDatabase.getConnection();
+        try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
             // Imposto il parametro sul codice del volo
@@ -490,127 +373,18 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
         } catch (SQLException e) {
             System.err.println("Errore recupero prenotazioni per volo "
                     + volo.getCodiceVolo() + ": " + e.getMessage());
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
         }
 
         return prenotazioniList;
     }
 
     @Override
-    public Prenotazione getPrenotazioneByNumeroBiglietto(String numeroBiglietto) {
-        Prenotazione prenotazione = null;
-
-        // Query per ottenere prenotazione, passeggero e bagagli in un'unica query
-        String query = "SELECT p.numero_biglietto, p.posto, p.stato as stato_prenotazione, " +
-                       "pa.nome, pa.cognome, pa.n_documento, " +
-                       "b.codice as codice_bagaglio, b.stato as stato_bagaglio " +
-                       "FROM prenotazioni p " +
-                       "JOIN passeggero pa ON p.passeggero_id = pa.n_documento " +
-                       "LEFT JOIN prenotazioni_bagagli pb ON p.numero_biglietto = pb.numero_biglietto " +
-                       "LEFT JOIN bagagli b ON pb.codice_bagaglio = b.codice " +
-                       "WHERE p.numero_biglietto = ?";
-
-        try (Connection conn = ConnessioneDatabase.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query)) {
-            stmt.setString(1, numeroBiglietto);
-            try (ResultSet rs = stmt.executeQuery()) {
-                while (rs.next()) {
-                    // Se è la prima riga, crea l'oggetto prenotazione
-                    if (prenotazione == null) {
-                        String posto = rs.getString("posto");
-                        StatoPrenotazione stato = StatoPrenotazione.valueOf(rs.getString("stato_prenotazione"));
-                        String nDocumento = rs.getString("n_documento");
-                        String nome = rs.getString("nome");
-                        String cognome = rs.getString("cognome");
-
-                        Passeggero passeggero = new Passeggero(nome, cognome, nDocumento);
-                        prenotazione = new Prenotazione(numeroBiglietto, posto, stato, passeggero);
-                        prenotazione.setBagagli(new ArrayList<>());
-                    }
-
-                    // Aggiungi il bagaglio alla prenotazione se presente
-                    String codiceBagaglio = rs.getString("codice_bagaglio");
-                    if (codiceBagaglio != null) {
-                        String statoBagaglioStr = rs.getString("stato_bagaglio");
-                        if (statoBagaglioStr != null) {
-                            StatoBagaglio statoBagaglio = StatoBagaglio.valueOf(statoBagaglioStr);
-                            Bagaglio bagaglio = new Bagaglio(codiceBagaglio, statoBagaglio);
-
-                            // Aggiungi il bagaglio alla lista dei bagagli della prenotazione
-                            prenotazione.getBagagli().add(bagaglio);
-                        }
-                    }
-                }
-            }
-        } catch (SQLException e) {
-            System.err.println("Errore durante il recupero della prenotazione: " + e.getMessage());
-        }
-
-        return prenotazione;
-    }
-
-    @Override
-    public List<Prenotazione> getPrenotazioniByPasseggero(String nome, String cognome) {
-        Map<String, Prenotazione> prenotazioniMap = new HashMap<>();
-
-        // Query per ottenere prenotazioni, passeggeri e bagagli in un'unica query
-        String query = "SELECT p.numero_biglietto, p.posto, p.stato as stato_prenotazione, " +
-                       "pa.nome, pa.cognome, pa.n_documento, " +
-                       "b.codice as codice_bagaglio, b.stato as stato_bagaglio " +
-                       "FROM prenotazioni p " +
-                       "JOIN passeggeri pa ON p.passeggero_id = pa.n_documento " +
-                       "LEFT JOIN prenotazioni_bagagli pb ON p.numero_biglietto = pb.numero_biglietto " +
-                       "LEFT JOIN bagagli b ON pb.codice_bagaglio = b.codice " +
-                       "WHERE pa.nome = ? AND pa.cognome = ? " +
-                       "ORDER BY p.numero_biglietto";
-
-        try (Connection conn = ConnessioneDatabase.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query)) {
-            stmt.setString(1, nome);
-            stmt.setString(2, cognome);
-            try (ResultSet rs = stmt.executeQuery()) {
-                while (rs.next()) {
-                    String numeroBiglietto = rs.getString("numero_biglietto");
-
-                    // Se la prenotazione non è ancora nella mappa, creala
-                    if (!prenotazioniMap.containsKey(numeroBiglietto)) {
-                        String posto = rs.getString("posto");
-                        StatoPrenotazione stato = StatoPrenotazione.valueOf(rs.getString("stato_prenotazione"));
-                        String nDocumento = rs.getString("n_documento");
-
-                        Passeggero passeggero = new Passeggero(nome, cognome, nDocumento);
-                        Prenotazione prenotazione = new Prenotazione(numeroBiglietto, posto, stato, passeggero);
-                        prenotazione.setBagagli(new ArrayList<>());
-
-                        prenotazioniMap.put(numeroBiglietto, prenotazione);
-                    }
-
-                    // Aggiungi il bagaglio alla prenotazione se presente
-                    String codiceBagaglio = rs.getString("codice_bagaglio");
-                    if (codiceBagaglio != null) {
-                        String statoBagaglioStr = rs.getString("stato_bagaglio");
-                        if (statoBagaglioStr != null) {
-                            StatoBagaglio statoBagaglio = StatoBagaglio.valueOf(statoBagaglioStr);
-                            Bagaglio bagaglio = new Bagaglio(codiceBagaglio, statoBagaglio);
-
-                            // Aggiungi il bagaglio alla lista dei bagagli della prenotazione
-                            prenotazioniMap.get(numeroBiglietto).getBagagli().add(bagaglio);
-                        }
-                    }
-                }
-            }
-        } catch (SQLException e) {
-            System.err.println("Errore durante il recupero delle prenotazioni per passeggero: " + e.getMessage());
-        }
-
-        // Converti la mappa in una lista
-        return new ArrayList<>(prenotazioniMap.values());
-    }
-
-    @Override
     public boolean insertPrenotazione(Prenotazione prenotazione, String codiceVolo, Utente utente) {
         boolean success = false;
 
-        try (Connection conn = ConnessioneDatabase.getConnection()) {
+        try (Connection conn = ConnessioneDatabase.getInstance().getConnection()) {
             conn.setAutoCommit(false);
 
             try {
@@ -724,6 +498,8 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
             }
         } catch (SQLException e) {
             e.printStackTrace();
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
         }
 
         return success;
@@ -743,19 +519,15 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
         String sqlUpdatePosto =
                 "UPDATE posto SET occupato = ? WHERE codice_volo = ? AND posto = ?";
 
-        try (Connection conn = ConnessioneDatabase.getConnection()) {
+        try (Connection conn = ConnessioneDatabase.getInstance().getConnection()) {
             conn.setAutoCommit(false);
 
             try (
-                    // 1) aggiorno lo stato della prenotazione
                     PreparedStatement psPren = conn.prepareStatement(sqlUpdatePren);
-                    // 2) recupero info necessario solo se devo cancellare
                     PreparedStatement psInfo = conn.prepareStatement(sqlSelectInfo);
-                    // 3) statement per volo e posto
                     PreparedStatement psVolo = conn.prepareStatement(sqlUpdateVolo);
                     PreparedStatement psPosto = conn.prepareStatement(sqlUpdatePosto);
             ) {
-                // ---- UPDATE prenotazione ----
                 psPren.setString(1, nuovoStato.name());
                 psPren.setString(2, numeroBiglietto);
                 int updated = psPren.executeUpdate();
@@ -798,6 +570,8 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
         catch (SQLException e) {
             System.err.println("Errore durante l'aggiornamento della prenotazione: " + e.getMessage());
             return false;
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -809,18 +583,17 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
 
         // Query per aggiornare i dati del passeggero
         String sqlUpdatePasseggero = 
-                "UPDATE passeggero SET nome = ?, cognome = ?, numero_documento = ? WHERE numero_documento = ?";
+                "UPDATE passeggero SET nome = ?, cognome = ?, numero_documento = ? WHERE id_passeggero = ?";
 
         // Query per aggiornare il riferimento al passeggero nella prenotazione se il numero documento è cambiato
-        String sqlUpdatePrenotazione = 
-                "UPDATE prenotazione SET id_passeggero = ? WHERE numero_biglietto = ?";
 
-        try (Connection conn = ConnessioneDatabase.getConnection()) {
+
+        try (Connection conn = ConnessioneDatabase.getInstance().getConnection()) {
             conn.setAutoCommit(false);
 
             try {
                 // 1) Recupero l'ID del passeggero attuale
-                String currentPasseggeroId;
+                int currentPasseggeroId;
                 try (PreparedStatement psSelect = conn.prepareStatement(sqlSelectPasseggeroId)) {
                     psSelect.setString(1, numeroBiglietto);
                     try (ResultSet rs = psSelect.executeQuery()) {
@@ -828,7 +601,7 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
                             conn.rollback();
                             return false;
                         }
-                        currentPasseggeroId = rs.getString("id_passeggero");
+                        currentPasseggeroId = rs.getInt("id_passeggero");
                     }
                 }
 
@@ -837,7 +610,7 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
                     psUpdate.setString(1, nome);
                     psUpdate.setString(2, cognome);
                     psUpdate.setString(3, nDocumento);
-                    psUpdate.setString(4, currentPasseggeroId);
+                    psUpdate.setInt(4, currentPasseggeroId);
                     int updated = psUpdate.executeUpdate();
                     if (updated == 0) {
                         conn.rollback();
@@ -846,13 +619,7 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
                 }
 
                 // 3) Se il numero documento è cambiato, aggiorno anche il riferimento nella prenotazione
-                if (!currentPasseggeroId.equals(nDocumento)) {
-                    try (PreparedStatement psUpdatePren = conn.prepareStatement(sqlUpdatePrenotazione)) {
-                        psUpdatePren.setString(1, nDocumento);
-                        psUpdatePren.setString(2, numeroBiglietto);
-                        psUpdatePren.executeUpdate();
-                    }
-                }
+
 
                 conn.commit();
                 return true;
@@ -863,6 +630,8 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
         } catch (SQLException e) {
             System.err.println("Errore durante l'aggiornamento del passeggero nella prenotazione: " + e.getMessage());
             return false;
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -871,7 +640,7 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
     public List<Bagaglio> getAllBagagli() {
         List<Bagaglio> bagagli = new ArrayList<>();
         String query = "SELECT * FROM bagaglio WHERE stato = 'smarrito'";
-        try (Connection conn = ConnessioneDatabase.getConnection();
+        try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(query)) {
             while (rs.next()) {
@@ -882,6 +651,8 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
             }
         } catch (SQLException e) {
             System.err.println("Errore durante il recupero dei bagagli: " + e.getMessage());
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
         }
         return bagagli;
     }
@@ -890,7 +661,7 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
     public List<Bagaglio> getBagagliByPrenotazione(String numeroBiglietto) {
         List<Bagaglio> bagagli = new ArrayList<>();
         String query = "SELECT b.* FROM bagaglio b JOIN prenotazione pb ON b.id_prenotazione = pb.id_prenotazione WHERE pb.numero_biglietto = ?";
-        try (Connection conn = ConnessioneDatabase.getConnection();
+        try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setString(1, numeroBiglietto);
             try (ResultSet rs = stmt.executeQuery()) {
@@ -903,6 +674,8 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
             }
         } catch (SQLException e) {
             System.err.println("Errore durante il recupero dei bagagli per prenotazione: " + e.getMessage());
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
         }
         return bagagli;
     }
@@ -910,7 +683,7 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
     @Override
     public Bagaglio getBagaglioByCodice(String codice) {
         String query = "SELECT * FROM bagaglio WHERE codice = ?";
-        try (Connection conn = ConnessioneDatabase.getConnection();
+        try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setString(1, codice);
             try (ResultSet rs = stmt.executeQuery()) {
@@ -921,62 +694,17 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
             }
         } catch (SQLException e) {
             System.err.println("Errore durante il recupero del bagaglio: " + e.getMessage());
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
         }
         return null;
     }
 
-    @Override
-    public boolean insertBagaglio(Bagaglio bagaglio, String numeroBiglietto) {
-        String queryBagaglio = "INSERT INTO bagagli (codice, stato) VALUES (?, ?)";
-        String queryRelazione = "INSERT INTO prenotazioni_bagagli (numero_biglietto, codice_bagaglio) VALUES (?, ?)";
-
-        Connection conn = null;
-        try {
-            conn = ConnessioneDatabase.getConnection();
-            conn.setAutoCommit(false);
-
-            // Inserisci il bagaglio
-            try (PreparedStatement stmtBagaglio = conn.prepareStatement(queryBagaglio)) {
-                stmtBagaglio.setString(1, bagaglio.getCodice());
-                stmtBagaglio.setString(2, bagaglio.getStato().toString());
-                stmtBagaglio.executeUpdate();
-            }
-
-            // Inserisci la relazione con la prenotazione
-            try (PreparedStatement stmtRelazione = conn.prepareStatement(queryRelazione)) {
-                stmtRelazione.setString(1, numeroBiglietto);
-                stmtRelazione.setString(2, bagaglio.getCodice());
-                stmtRelazione.executeUpdate();
-            }
-
-            conn.commit();
-            return true;
-        } catch (SQLException e) {
-            System.err.println("Errore durante l'inserimento del bagaglio: " + e.getMessage());
-            if (conn != null) {
-                try {
-                    conn.rollback();
-                } catch (SQLException ex) {
-                    System.err.println("Errore durante il rollback: " + ex.getMessage());
-                }
-            }
-            return false;
-        } finally {
-            if (conn != null) {
-                try {
-                    conn.setAutoCommit(true);
-                    conn.close();
-                } catch (SQLException e) {
-                    System.err.println("Errore durante la chiusura della connessione: " + e.getMessage());
-                }
-            }
-        }
-    }
 
     @Override
     public boolean updateBagaglio(Bagaglio bagaglio) {
         String query = "UPDATE bagaglio SET stato = ? WHERE codice = ?";
-        try (Connection conn = ConnessioneDatabase.getConnection();
+        try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setString(1, bagaglio.getStato().toString());
             stmt.setString(2, bagaglio.getCodice());
@@ -984,6 +712,8 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
         } catch (SQLException e) {
             System.err.println("Errore durante l'aggiornamento del bagaglio: " + e.getMessage());
             return false;
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -996,7 +726,7 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
                         "WHERE p.id_prenotazione = b.id_prenotazione " +
                         "  AND p.codice_volo = ?";
 
-        try (Connection conn = ConnessioneDatabase.getConnection();
+        try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
             // 1 = nuovo stato, 2 = codice del volo
@@ -1009,28 +739,12 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
             System.err.println("Errore durante l'aggiornamento dei bagagli per volo "
                     + codiceVolo + ": " + e.getMessage());
             return false;
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
         }
     }
 
 
-    @Override
-    public List<Bagaglio> getBagagliSmarriti() {
-        List<Bagaglio> bagagliSmarriti = new ArrayList<>();
-        String query = "SELECT * FROM bagaglio WHERE stato = 'smarrito'";
-        try (Connection conn = ConnessioneDatabase.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(query)) {
-            while (rs.next()) {
-                String codice = rs.getString("codice");
-                StatoBagaglio stato = StatoBagaglio.valueOf(rs.getString("stato"));
-                Bagaglio bagaglio = new Bagaglio(codice, stato);
-                bagagliSmarriti.add(bagaglio);
-            }
-        } catch (SQLException e) {
-            System.err.println("Errore durante il recupero dei bagagli smarriti: " + e.getMessage());
-        }
-        return bagagliSmarriti;
-    }
 
 
     @Override
@@ -1041,7 +755,7 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
                         "FROM posto " +
                         "WHERE codice_volo = ?";
 
-        try (Connection conn = ConnessioneDatabase.getConnection();
+        try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, coidceVolo);
@@ -1060,6 +774,8 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
             System.err.println("Errore in getPostiByVolo: " + e.getMessage());
             // se preferisci, rilancia un unchecked:
             // throw new RuntimeException("DB error", e);
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
         }
 
         return posti;
@@ -1077,7 +793,7 @@ public List<Bagaglio> getBagagliByUtente(Utente user){
             +"ORDER BY p.codice_volo";
 
 
-    try (Connection conn = ConnessioneDatabase.getConnection();
+    try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
          PreparedStatement ps = conn.prepareStatement(sql)) {
 
         // filtro per l'utente passato
@@ -1095,6 +811,8 @@ public List<Bagaglio> getBagagliByUtente(Utente user){
     } catch (SQLException e) {
         e.printStackTrace();
         // in produzione potresti rilanciare un'eccezione custom
+    } catch (ClassNotFoundException e) {
+        throw new RuntimeException(e);
     }
 
     return bagagli;
@@ -1110,7 +828,7 @@ public List<Bagaglio> getBagagliByUtente(Utente user){
                     "JOIN bagaglio b ON b.id_prenotazione = p.id_prenotazione " +
                 "JOIN passeggero pa ON pa.id_passeggero = p.id_passeggero " +
                 " WHERE b.codice = ?";
-        try (Connection conn = ConnessioneDatabase.getConnection();
+        try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setString(1, codice_bagaglio);
             try (ResultSet rs = stmt.executeQuery()) {
@@ -1121,6 +839,8 @@ public List<Bagaglio> getBagagliByUtente(Utente user){
             }
         } catch (SQLException e) {
             System.err.println("Errore durante il recupero del bagaglio: " + e.getMessage());
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
         }
         return null;
     }
