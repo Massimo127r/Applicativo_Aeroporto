@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form xmlns="http://www.intellij.com/uidesigner/form/" version="1" bind-to-class="gui.Welcome">
+  <grid id="27dc6" binding="mainPanel" layout-manager="BorderLayout" hgap="10" vgap="10">
+    <constraints>
+      <xy x="20" y="20" width="500" height="400"/>
+    </constraints>
+    <properties/>
+    <border type="empty">
+      <size top="30" left="30" bottom="30" right="30"/>
+    </border>
+    <children>
+      <grid id="e0f0a" layout-manager="FlowLayout" hgap="5" vgap="5" flow-align="1">
+        <constraints border-constraint="North"/>
+        <properties/>
+        <border type="none"/>
+        <children>
+          <component id="a9c9c" class="javax.swing.JLabel" binding="titleLabel">
+            <constraints/>
+            <properties>
+              <font size="20" style="1"/>
+              <text value="Benvenuto all'Aeroporto di Napoli"/>
+            </properties>
+          </component>
+        </children>
+      </grid>
+      <grid id="c5b9f" layout-manager="GridLayoutManager" row-count="2" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="10" vgap="10">
+        <margin top="0" left="0" bottom="0" right="0"/>
+        <constraints border-constraint="Center"/>
+        <properties/>
+        <border type="none"/>
+        <children>
+          <component id="e1c1a" class="javax.swing.JButton" binding="loginButton">
+            <constraints>
+              <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+            </constraints>
+            <properties>
+              <font size="16"/>
+              <text value="Accedi"/>
+            </properties>
+          </component>
+          <component id="e5a0a" class="javax.swing.JButton" binding="registerButton">
+            <constraints>
+              <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+            </constraints>
+            <properties>
+              <font size="16"/>
+              <text value="Registrati"/>
+            </properties>
+          </component>
+        </children>
+      </grid>
+    </children>
+  </grid>
+</form>

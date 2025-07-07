@@ -1,159 +1,136 @@
 package controller;
 
+import DAO.PostgresDAO;
+import ImplementazionePostgresDAO.ImplementazionePostgresDAO;
 import model.*;
-import gui.LoginFrame;
 
-import java.util.ArrayList;
+import java.time.LocalDate;
 import java.util.List;
 
-
 public class Controller {
-    private static Controller instance;
-    private List<Utente> utenti;
-    private List<Amministratore> amministratori;
-    private Utente utenteCorrente;
-    private DataInitializer dataInitializer;
+    private final PostgresDAO dao;
 
-    private Controller() {
-        utenti = new ArrayList<>();
-        amministratori = new ArrayList<>();
-        dataInitializer = DataInitializer.getInstance();
-
-        // Aggiungo alcuni utenti di default per test
-        amministratori.add(new Amministratore("admin", "admin", "Admin", "System"));
-        utenti.add(new Utente("user", "user", "Utente", "Test"));
+    public Controller() {
+        this.dao = new ImplementazionePostgresDAO();
     }
 
-    public static Controller getInstance() {
-        if (instance == null) {
-            instance = new Controller();
-        }
-        return instance;
+
+
+    /**
+     * Effettua il login verificando anche il tipo di utente
+     * @param login Nome utente
+     * @param password Password
+     * @param tipo Tipo di utente (Amministratore o Utente)
+     * @return Oggetto Utente se le credenziali sono valide e il tipo corrisponde, null altrimenti
+     */
+    public Utente login(String login, String password, String tipo) {
+        // Converti il tipo in formato database (amministratore o generico)
+        String tipoDb = "Amministratore".equals(tipo) ? "amministratore" : "generico";
+        return dao.getUtenteByCredentialsAndType(login, password, tipoDb);
     }
 
-    public boolean login(String username, String password, String tipoUtente) {
-        if (tipoUtente.equals("Amministratore")) {
-            for (Amministratore admin : amministratori) {
-                if (admin.getNomeUtente().equals(username) && admin.getPassword().equals(password)) {
-                    utenteCorrente = admin;
-                    return true;
-                }
-            }
-        } else {
-            for (Utente utente : utenti) {
-                if (utente.getNomeUtente().equals(username) && utente.getPassword().equals(password)) {
-                    utenteCorrente = utente;
-                    return true;
-                }
-            }
-        }
-        return false;
+    /**
+     * Registra un nuovo utente nel sistema
+     * @param utente Oggetto Utente da registrare
+     * @param isAdmin True se l'utente è un amministratore, False se è un utente generico
+     * @return True se la registrazione è avvenuta con successo, False altrimenti
+     */
+    public boolean registraUtente(Utente utente, boolean isAdmin) {
+        String tipo = isAdmin ? "amministratore" : "generico";
+        return dao.insertUtente(utente, tipo);
+    }
+    // Metodi per la gestione dei voli
+    public List<Volo> getAllVoli() {
+        return dao.getAllVoli();
     }
 
-    public boolean registraUtente(String username, String password, String nome, String cognome) {
-        // Verifica se l'username esiste già
-        for (Utente utente : utenti) {
-            if (utente.getNomeUtente().equals(username)) {
-                return false;
-            }
-        }
-        for (Amministratore admin : amministratori) {
-            if (admin.getNomeUtente().equals(username)) {
-                return false;
-            }
-        }
-
-        // Crea nuovo utente
-        Utente nuovoUtente = new Utente(username, password, nome, cognome);
-        utenti.add(nuovoUtente);
-        return true;
+    public Volo getVoloByCodice(String codiceVolo) {
+        return dao.getVoloByCodice(codiceVolo);
     }
 
-    public Utente getUtenteCorrente() {
-        return utenteCorrente;
+    public boolean inserisciVolo(String codiceVolo, String compagnia, String origine, String destinazione,
+                                String orarioPrevisto, StatoVolo stato, LocalDate data, int tempoRitardo,  int totalSeats, int availableSeats) {
+        Volo volo = new Volo(codiceVolo, compagnia, origine, destinazione, orarioPrevisto, stato, data, tempoRitardo,totalSeats,availableSeats, 0  );
+        return dao.insertVolo(volo);
     }
 
-    public boolean isAmministratore() {
-        return utenteCorrente instanceof Amministratore;
+    public boolean modificaVolo(Volo volo) {
+        return dao.updateVolo(volo);
     }
 
-    public void logout() {
-        utenteCorrente = null;
+    // Metodi per la gestione dei gate
+    public List<Gate> getAllGates() {
+        return dao.getAllGates();
     }
 
-    // Metodi per gestire i voli
-    public List<Volo> getVoli() {
-        return dataInitializer.getVoli();
+    public boolean assegnaGate(int codiceGate, String codiceVolo) {
+        return dao.assignGateToFlight(codiceGate, codiceVolo);
     }
 
-    public void aggiungiVolo(Volo volo) {
-        dataInitializer.addVolo(volo);
+
+    // Metodi per la gestione delle prenotazioni
+    public List<Prenotazione> getAllPrenotazioni() {
+        return dao.getAllPrenotazioni();
+    }
+    public List<Prenotazione> getPrenotazioniByVolo(Volo volo) {
+        return dao.getPrenotazioniByVolo( volo);
+    }
+    public Prenotazione getPrenotazioneByNumeroBiglietto(String numeroBiglietto) {
+        return dao.getPrenotazioneByNumeroBiglietto(numeroBiglietto);
     }
 
-    // Metodi per gestire i gate
-    public List<Gate> getGates() {
-        return dataInitializer.getGates();
+    public List<Prenotazione> getPrenotazioniByPasseggero(String nome, String cognome) {
+        return dao.getPrenotazioniByPasseggero(nome, cognome);
     }
 
-    public void aggiungiGate(Gate gate) {
-        dataInitializer.addGate(gate);
+    public boolean creaPrenotazione(Prenotazione prenotazione,String  codiceVolo,Utente utente) {
+        return dao.insertPrenotazione(prenotazione, codiceVolo, utente);
     }
 
-    // Metodi per gestire i bagagli
-    public List<Bagaglio> getBagagli() {
-        return dataInitializer.getBagagli();
+    public boolean aggiornaPrenotazione(StatoPrenotazione prenotazione, String numeroBiglietto) {
+        return dao.updatePrenotazione(prenotazione, numeroBiglietto);
     }
 
-    public void aggiungiBagaglio(Bagaglio bagaglio) {
-        dataInitializer.addBagaglio(bagaglio);
+    // Metodi per la gestione dei bagagli
+    public List<Bagaglio> getAllBagagli() {
+        return dao.getAllBagagli();
     }
 
-    // Metodi per gestire le prenotazioni
-    public List<Prenotazione> getPrenotazioni() {
-        return dataInitializer.getPrenotazioni();
+    public List<Bagaglio> getBagagliByPrenotazione(String numeroBiglietto) {
+        return dao.getBagagliByPrenotazione(numeroBiglietto);
     }
 
-    public void aggiungiPrenotazione(Prenotazione prenotazione) {
-        dataInitializer.addPrenotazione(prenotazione);
+    public Bagaglio getBagaglioByCodice(String codice) {
+        return dao.getBagaglioByCodice(codice);
     }
 
-    // Metodi per gestire i passeggeri
-    public List<Passeggero> getPasseggeri() {
-        return dataInitializer.getPasseggeri();
+    public boolean aggiungiBagaglio(String codice, StatoBagaglio stato, String numeroBiglietto) {
+        Bagaglio bagaglio = new Bagaglio(codice, stato);
+        return dao.insertBagaglio(bagaglio, numeroBiglietto);
     }
 
-    public void aggiungiPasseggero(Passeggero passeggero) {
-        dataInitializer.addPasseggero(passeggero);
+    public boolean aggiornaBagaglio(Bagaglio bagaglio) {
+        return dao.updateBagaglio(bagaglio);
     }
 
-    // Metodi per filtrare i dati
-    public List<Volo> getVoliByStato(StatoVolo stato) {
-        List<Volo> voliFiltrati = new ArrayList<>();
-        for (Volo volo : dataInitializer.getVoli()) {
-            if (volo.getStato() == stato) {
-                voliFiltrati.add(volo);
-            }
-        }
-        return voliFiltrati;
+    public boolean aggiornatAllBagagli(String codiceVolo, StatoBagaglio nuovoStato){
+        return dao.updateBagagliByVolo(codiceVolo,nuovoStato );
+    }
+    public List<Bagaglio> getBagagliSmarriti() {
+        return dao.getBagagliSmarriti();
     }
 
-    public List<Bagaglio> getBagagliByStato(StatoBagaglio stato) {
-        List<Bagaglio> bagagliFiltrati = new ArrayList<>();
-        for (Bagaglio bagaglio : dataInitializer.getBagagli()) {
-            if (bagaglio.getStato() == stato) {
-                bagagliFiltrati.add(bagaglio);
-            }
-        }
-        return bagagliFiltrati;
+
+    public List<Prenotazione> getPrenotazioneByUtente(Utente utente) {
+        return dao.getPrenotazioneByUtente(utente);
+
     }
 
-    public List<Prenotazione> getPrenotazioniByStato(StatoPrenotazione stato) {
-        List<Prenotazione> prenotazioniFiltrate = new ArrayList<>();
-        for (Prenotazione prenotazione : dataInitializer.getPrenotazioni()) {
-            if (prenotazione.getStato() == stato) {
-                prenotazioniFiltrate.add(prenotazione);
-            }
-        }
-        return prenotazioniFiltrate;
+    public List<Posto> getPostiByVolo(String coidceVolo) { return dao.getPostiByVolo(coidceVolo);}
+
+    public List<Bagaglio> getBagagliByUtente(Utente user){return dao.getBagagliByUtente(user);}
+
+    public Prenotazione getPrenotazioneByBagaglio(String codice_bagaglio) {
+        return dao.getPrenotazioneByBagaglio(codice_bagaglio);
     }
 }
