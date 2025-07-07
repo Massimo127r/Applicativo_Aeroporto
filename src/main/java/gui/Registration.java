@@ -168,9 +168,9 @@ public class Registration extends JFrame {
         usernameField.setInputVerifier(new InputVerifier() {
             @Override
             public boolean verify(JComponent input) {
-                String txt = ((JTextField)input).getText().trim();
-                if (txt.length() < 4 || !txt.matches("[A-Za-z0-9_]+")) {
-                    statusLabel.setText("Username: minimo 4 caratteri alfanumerici");
+                String txt = ((JTextField)input).getText();
+                if (txt.length() < 5 || !txt.matches("[A-Za-z0-9_]+") || txt.contains(" ")) {
+                    statusLabel.setText("Username: minimo 5 caratteri alfanumerici senza spazi");
                     return false;
                 }
                 statusLabel.setText("");
@@ -181,8 +181,8 @@ public class Registration extends JFrame {
             @Override
             public boolean verify(JComponent input) {
                 String pwd = new String(((JPasswordField)input).getPassword());
-                if (pwd.length() < 6) {
-                    statusLabel.setText("Password troppo corta (min 6 caratteri)");
+                if (pwd.length() < 5 || pwd.contains(" ")) {
+                    statusLabel.setText("Password: minimo 5 caratteri senza spazi");
                     return false;
                 }
                 statusLabel.setText("");
@@ -193,16 +193,37 @@ public class Registration extends JFrame {
             @Override
             public boolean verify(JComponent input) {
                 String n = ((JTextField)input).getText().trim();
-                if (!n.matches("[A-Za-zàèéìòùĀ-ž ]+")) {
-                    statusLabel.setText("Errore Nome e Cognome devono contenere solo lettere");
+                // Count non-space characters
+                int nonSpaceChars = 0;
+                for (char c : n.toCharArray()) {
+                    if (c != ' ') nonSpaceChars++;
+                }
+                if (!n.matches("[A-Za-zàèéìòùĀ-ž ]+") || nonSpaceChars < 3) {
+                    statusLabel.setText("Nome deve contenere almeno 3 caratteri diversi dallo spazio");
                     return false;
                 }
                 statusLabel.setText("");
                 return true;
             }
         });
-// cognome ha stessa regola di nome
-        cognomeField.setInputVerifier(nomeField.getInputVerifier());
+// Cognome ha regola simile a nome ma con messaggio specifico
+        cognomeField.setInputVerifier(new InputVerifier() {
+            @Override
+            public boolean verify(JComponent input) {
+                String n = ((JTextField)input).getText().trim();
+                // Count non-space characters
+                int nonSpaceChars = 0;
+                for (char c : n.toCharArray()) {
+                    if (c != ' ') nonSpaceChars++;
+                }
+                if (!n.matches("[A-Za-zàèéìòùĀ-ž ]+") || nonSpaceChars < 3) {
+                    statusLabel.setText("Cognome deve contenere almeno 3 caratteri diversi dallo spazio");
+                    return false;
+                }
+                statusLabel.setText("");
+                return true;
+            }
+        });
         // Style status label
         statusLabel.setForeground(UIManager.ERROR_COLOR);
 

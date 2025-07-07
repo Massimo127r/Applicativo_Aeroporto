@@ -133,4 +133,16 @@ public class Controller {
     public Prenotazione getPrenotazioneByBagaglio(String codice_bagaglio) {
         return dao.getPrenotazioneByBagaglio(codice_bagaglio);
     }
+
+    /**
+     * Aggiorna le informazioni del passeggero in una prenotazione
+     * @param numeroBiglietto Numero del biglietto della prenotazione
+     * @param nome Nuovo nome del passeggero
+     * @param cognome Nuovo cognome del passeggero
+     * @param nDocumento Nuovo numero di documento del passeggero
+     * @return True se l'aggiornamento è avvenuto con successo, False altrimenti
+     */
+    public boolean updatePassengerInfo(String numeroBiglietto, String nome, String cognome, String nDocumento) {
+        return dao.updatePasseggeroInPrenotazione(numeroBiglietto, nome, cognome, nDocumento);
+    }
 }

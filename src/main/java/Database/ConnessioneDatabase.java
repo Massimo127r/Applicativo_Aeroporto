@@ -17,7 +17,7 @@ public class ConnessioneDatabase {
     // Parametri di connessione al database
     private static final String DB_URL = "jdbc:postgresql://localhost:5432/DB";
     private static final String DB_USER = "postgres";
-    private static final String DB_PASSWORD = "Massimorusso127";
+    private static final String DB_PASSWORD = "Grafica2004#";
 
     private static Connection connection = null;
 

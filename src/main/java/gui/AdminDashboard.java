@@ -108,6 +108,15 @@ public class AdminDashboard extends JFrame {
         setContentPane(mainPanel);
     }
 
+    // Helper method to count non-space characters in a string
+    private int countNonSpaceChars(String text) {
+        int count = 0;
+        for (char c : text.toCharArray()) {
+            if (c != ' ') count++;
+        }
+        return count;
+    }
+
     private void initializeTestData() {
         // Retrieve flights from database
         flights = controller.getAllVoli();
@@ -437,10 +446,25 @@ public class AdminDashboard extends JFrame {
                     int delay = Integer.parseInt(delayField.getText());
                     int totalSeats = Integer.parseInt(totalSeatsField.getText());
 
+                    // Count non-space characters in text fields
+                    int airlineNonSpaceChars = countNonSpaceChars(airline);
+                    int originNonSpaceChars = countNonSpaceChars(origin);
+                    int destinationNonSpaceChars = countNonSpaceChars(destination);
+                    int timeNonSpaceChars = countNonSpaceChars(time);
+
                     if (airline.isEmpty() || origin.isEmpty() || destination.isEmpty() || time.isEmpty() || 
                         totalSeats <= 0 ) {
                         JOptionPane.showMessageDialog(AdminDashboard.this,
-                            "Tutti i campi sono obbligatori. I posti totali  devono essere maggiori di zero",
+                            "Tutti i campi sono obbligatori. I posti totali devono essere maggiori di zero",
+                            "Errore", JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
+
+                    // Check if text fields have at least 3 non-space characters
+                    if (airlineNonSpaceChars < 3 || originNonSpaceChars < 3 || 
+                        destinationNonSpaceChars < 3 || timeNonSpaceChars < 3) {
+                        JOptionPane.showMessageDialog(AdminDashboard.this,
+                            "I campi di testo devono contenere almeno 3 caratteri diversi dallo spazio",
                             "Errore", JOptionPane.ERROR_MESSAGE);
                         return;
                     }
@@ -449,6 +473,14 @@ public class AdminDashboard extends JFrame {
                     if (!origin.equals("Napoli") && !destination.equals("Napoli")) {
                         JOptionPane.showMessageDialog(AdminDashboard.this,
                             "L'origine o la destinazione deve essere Napoli",
+                            "Errore", JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
+
+                    // Validate that delay is at least 1 minute when status is "inRitardo"
+                    if (status == StatoVolo.inRitardo && delay < 1) {
+                        JOptionPane.showMessageDialog(AdminDashboard.this,
+                            "Per i voli in ritardo, il ritardo deve essere maggiore o uguale a 1 minuto",
                             "Errore", JOptionPane.ERROR_MESSAGE);
                         return;
                     }
@@ -576,6 +608,39 @@ public class AdminDashboard extends JFrame {
         lostBaggageTable.getColumnModel().getColumn(1).setPreferredWidth(100);
         lostBaggageTable.getColumnModel().getColumn(2).setPreferredWidth(100);
 
+        // Set custom renderer for the status column
+        lostBaggageTable.getColumnModel().getColumn(1).setCellRenderer(new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+
+                if (value != null) {
+                    String status = value.toString();
+                    if (status.equals("smarrito")) {
+                        c.setBackground(Color.RED);
+                        c.setForeground(Color.WHITE);
+                    } else if (status.equals("inElaborazione")) {
+                        c.setBackground(Color.YELLOW);
+                        c.setForeground(Color.BLACK);
+                    } else if (status.equals("caricato")) {
+                        c.setBackground(Color.GREEN);
+                        c.setForeground(Color.BLACK);
+                    } else if (status.equals("ritirabile")) {
+                        c.setBackground(new Color(173, 216, 230)); // Light blue
+                        c.setForeground(Color.BLACK);
+                    } else {
+                        c.setBackground(isSelected ? table.getSelectionBackground() : table.getBackground());
+                        c.setForeground(isSelected ? table.getSelectionForeground() : table.getForeground());
+                    }
+                } else {
+                    c.setBackground(isSelected ? table.getSelectionBackground() : table.getBackground());
+                    c.setForeground(isSelected ? table.getSelectionForeground() : table.getForeground());
+                }
+
+                return c;
+            }
+        });
+
         // Add some test data for lost baggage
         for (Bagaglio bagaglio : baggages) {
                 model.addRow(new Object[]{bagaglio.getCodice(), bagaglio.getStato(),  "Modifica"});
@@ -602,9 +667,19 @@ public class AdminDashboard extends JFrame {
         lostBaggagePanel.add(scrollPane, BorderLayout.CENTER);
 
         // Add refresh button
-
+        JButton refreshButton = new JButton("Aggiorna");
+        refreshButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                // Get the baggage table from the scroll pane
+                JScrollPane scrollPane = (JScrollPane) lostBaggagePanel.getComponent(0);
+                JTable lostBaggageTable = (JTable) scrollPane.getViewport().getView();
+                updateLostBaggageTable(lostBaggageTable);
+            }
+        });
 
         JPanel buttonPanel = new JPanel();
+        buttonPanel.add(refreshButton);
         lostBaggagePanel.add(buttonPanel, BorderLayout.SOUTH);
 
         // Add panel to tabbed pane
@@ -911,6 +986,34 @@ public class AdminDashboard extends JFrame {
 
         JTable bookingsTable = new JTable(model);
 
+        // Set custom renderer for status column
+        bookingsTable.getColumnModel().getColumn(4).setCellRenderer(new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+
+                if (value != null) {
+                    StatoPrenotazione stato = (StatoPrenotazione) value;
+                    if (stato == StatoPrenotazione.confermata) {
+                        c.setBackground(UIManager.SUCCESS_COLOR); // Green
+                        c.setForeground(Color.WHITE);
+                    } else if (stato == StatoPrenotazione.inAttesa) {
+                        c.setBackground(Color.YELLOW); // Yellow
+                        c.setForeground(Color.BLACK);
+                    } else if (stato == StatoPrenotazione.cancellato) {
+                        c.setBackground(Color.RED); // Red
+                        c.setForeground(Color.WHITE);
+                    } else {
+                        c.setBackground(isSelected ? table.getSelectionBackground() : table.getBackground());
+                        c.setForeground(isSelected ? table.getSelectionForeground() : table.getForeground());
+                    }
+                }
+
+                ((JLabel)c).setHorizontalAlignment(JLabel.CENTER);
+                return c;
+            }
+        });
+
         // Add mouse listener to handle button clicks in the action column
         bookingsTable.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
@@ -1010,6 +1113,45 @@ public class AdminDashboard extends JFrame {
         formPanel.add(new JLabel("Ritardo (min):"));
         formPanel.add(delayField);
 
+        // Add listener to status combo box to show delay dialog when status is changed to "inRitardo"
+        statusComboBox.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                StatoVolo selectedStatus = (StatoVolo) statusComboBox.getSelectedItem();
+                if (selectedStatus == StatoVolo.inRitardo && flight.getStato() != StatoVolo.inRitardo) {
+                    // Show dialog to enter delay
+                    String delayStr = JOptionPane.showInputDialog(dialog,
+                            "Inserisci il ritardo in minuti (deve essere maggiore o uguale a 1):",
+                            "Ritardo Volo", JOptionPane.QUESTION_MESSAGE);
+
+                    try {
+                        if (delayStr == null) {
+                            // User cancelled the dialog
+                            statusComboBox.setSelectedItem(flight.getStato());
+                            return;
+                        }
+
+                        int delayValue = Integer.parseInt(delayStr);
+                        if (delayValue < 1) {
+                            JOptionPane.showMessageDialog(dialog,
+                                "Il ritardo deve essere maggiore o uguale a 1 minuto",
+                                "Errore", JOptionPane.ERROR_MESSAGE);
+                            // Reset to previous status
+                            statusComboBox.setSelectedItem(flight.getStato());
+                        } else {
+                            // Set the delay field
+                            delayField.setText(String.valueOf(delayValue));
+                        }
+                    } catch (NumberFormatException ex) {
+                        JOptionPane.showMessageDialog(dialog,
+                            "Inserisci un valore numerico valido per il ritardo",
+                            "Errore", JOptionPane.ERROR_MESSAGE);
+                        // Reset to previous status
+                        statusComboBox.setSelectedItem(flight.getStato());
+                    }
+                }
+            }
+        });
 
         mainPanel.add(formPanel, BorderLayout.CENTER);
 
@@ -1036,6 +1178,13 @@ public class AdminDashboard extends JFrame {
                     if (airline.isEmpty() || origin.isEmpty() || destination.isEmpty() || time.isEmpty()) {
                         JOptionPane.showMessageDialog(dialog,
                             "Tutti i campi sono obbligatori",
+                            "Errore", JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
+
+                    if (status == StatoVolo.inRitardo && delay < 1) {
+                        JOptionPane.showMessageDialog(dialog,
+                            "Per i voli in ritardo, il ritardo deve essere maggiore o uguale a 1 minuto",
                             "Errore", JOptionPane.ERROR_MESSAGE);
                         return;
                     }
@@ -1239,22 +1388,16 @@ public class AdminDashboard extends JFrame {
         String ndoc = (String) bookingsTable.getValueAt(row, 2);
 
         String seat = (String) bookingsTable.getValueAt(row, 3);
-        String status = (String) bookingsTable.getValueAt(row, 4).toString();
-        String baggageCount = (String) bookingsTable.getValueAt(row, 5).toString();
+        StatoPrenotazione status = (StatoPrenotazione) bookingsTable.getValueAt(row, 4);
+        int baggageCount = (int) bookingsTable.getValueAt(row, 5);
 
         // Create form fields
         JTextField nameField = new JTextField(passengerName);
         JTextField seatField = new JTextField(seat);
         JComboBox<StatoPrenotazione> statusComboBox = new JComboBox<>(StatoPrenotazione.values());
 
-        // Set selected status based on the string value
-        if (status.equalsIgnoreCase("Confermata")) {
-            statusComboBox.setSelectedItem(StatoPrenotazione.confermata);
-        } else if (status.equalsIgnoreCase("InAttesa")) {
-            statusComboBox.setSelectedItem(StatoPrenotazione.inAttesa);
-        } else if (status.equalsIgnoreCase("Cancellato")) {
-            statusComboBox.setSelectedItem(StatoPrenotazione.cancellato);
-        }
+        // Set selected status
+        statusComboBox.setSelectedItem(status);
 
         formPanel.add(new JLabel("Numero Biglietto:"));
         formPanel.add(new JLabel(ticketNumber));
@@ -1267,7 +1410,7 @@ public class AdminDashboard extends JFrame {
         formPanel.add(new JLabel("Stato:"));
         formPanel.add(statusComboBox);
         formPanel.add(new JLabel("Bagagli:"));
-        formPanel.add(new JLabel(baggageCount));
+        formPanel.add(new JLabel(String.valueOf(baggageCount)));
 
         bookingPanel.add(formPanel, BorderLayout.CENTER);
 
@@ -1281,18 +1424,11 @@ public class AdminDashboard extends JFrame {
                 bookingsTable.setValueAt(nameField.getText(), row, 1);
                 bookingsTable.setValueAt(seatField.getText(), row, 3);
 
-                // Convert enum to display string
-                String statusDisplay;
+                // Get the selected status from the combo box
                 StatoPrenotazione selectedStatus = (StatoPrenotazione) statusComboBox.getSelectedItem();
-                if (selectedStatus == StatoPrenotazione.confermata) {
-                    statusDisplay = "Confermata";
-                } else if (selectedStatus == StatoPrenotazione.inAttesa) {
-                    statusDisplay = "InAttesa";
-                } else {
-                    statusDisplay = "Cancellato";
-                }
 
-                bookingsTable.setValueAt(statusDisplay, row, 4);
+                // Update the status in the table
+                bookingsTable.setValueAt(selectedStatus, row, 4);
 
                 controller.aggiornaPrenotazione(selectedStatus, ticketNumber);
                 refreshFlightsTable();
@@ -1334,6 +1470,39 @@ public class AdminDashboard extends JFrame {
         // Create a combo box editor for the status column
         JComboBox<StatoBagaglio> statusEditor = new JComboBox<>(StatoBagaglio.values());
         baggageTable.getColumnModel().getColumn(1).setCellEditor(new DefaultCellEditor(statusEditor));
+
+        // Set custom renderer for the status column
+        baggageTable.getColumnModel().getColumn(1).setCellRenderer(new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+
+                if (value != null) {
+                    StatoBagaglio status = (StatoBagaglio) value;
+                    if (status == StatoBagaglio.smarrito) {
+                        c.setBackground(Color.RED);
+                        c.setForeground(Color.WHITE);
+                    } else if (status == StatoBagaglio.inElaborazione) {
+                        c.setBackground(Color.YELLOW);
+                        c.setForeground(Color.BLACK);
+                    } else if (status == StatoBagaglio.caricato) {
+                        c.setBackground(Color.GREEN);
+                        c.setForeground(Color.BLACK);
+                    } else if (status == StatoBagaglio.ritirabile) {
+                        c.setBackground(new Color(173, 216, 230)); // Light blue
+                        c.setForeground(Color.BLACK);
+                    } else {
+                        c.setBackground(isSelected ? table.getSelectionBackground() : table.getBackground());
+                        c.setForeground(isSelected ? table.getSelectionForeground() : table.getForeground());
+                    }
+                } else {
+                    c.setBackground(isSelected ? table.getSelectionBackground() : table.getBackground());
+                    c.setForeground(isSelected ? table.getSelectionForeground() : table.getForeground());
+                }
+
+                return c;
+            }
+        });
 
         // Add mouse listener for the action column
         baggageTable.addMouseListener(new java.awt.event.MouseAdapter() {

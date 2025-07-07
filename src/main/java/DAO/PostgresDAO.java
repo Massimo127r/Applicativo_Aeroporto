@@ -29,6 +29,8 @@ public interface PostgresDAO {
 
     boolean insertPasseggero(Passeggero passeggero);
 
+    boolean updatePasseggeroInPrenotazione(String numeroBiglietto, String nome, String cognome, String nDocumento);
+
     // Metodi per Prenotazione
     List<Prenotazione> getAllPrenotazioni();
 

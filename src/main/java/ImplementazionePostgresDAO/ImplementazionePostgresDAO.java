@@ -801,6 +801,71 @@ public class ImplementazionePostgresDAO implements PostgresDAO {
         }
     }
 
+    @Override
+    public boolean updatePasseggeroInPrenotazione(String numeroBiglietto, String nome, String cognome, String nDocumento) {
+        // Query per ottenere l'ID del passeggero associato alla prenotazione
+        String sqlSelectPasseggeroId = 
+                "SELECT id_passeggero FROM prenotazione WHERE numero_biglietto = ?";
+
+        // Query per aggiornare i dati del passeggero
+        String sqlUpdatePasseggero = 
+                "UPDATE passeggero SET nome = ?, cognome = ?, numero_documento = ? WHERE numero_documento = ?";
+
+        // Query per aggiornare il riferimento al passeggero nella prenotazione se il numero documento è cambiato
+        String sqlUpdatePrenotazione = 
+                "UPDATE prenotazione SET id_passeggero = ? WHERE numero_biglietto = ?";
+
+        try (Connection conn = ConnessioneDatabase.getConnection()) {
+            conn.setAutoCommit(false);
+
+            try {
+                // 1) Recupero l'ID del passeggero attuale
+                String currentPasseggeroId;
+                try (PreparedStatement psSelect = conn.prepareStatement(sqlSelectPasseggeroId)) {
+                    psSelect.setString(1, numeroBiglietto);
+                    try (ResultSet rs = psSelect.executeQuery()) {
+                        if (!rs.next()) {
+                            conn.rollback();
+                            return false;
+                        }
+                        currentPasseggeroId = rs.getString("id_passeggero");
+                    }
+                }
+
+                // 2) Aggiorno i dati del passeggero
+                try (PreparedStatement psUpdate = conn.prepareStatement(sqlUpdatePasseggero)) {
+                    psUpdate.setString(1, nome);
+                    psUpdate.setString(2, cognome);
+                    psUpdate.setString(3, nDocumento);
+                    psUpdate.setString(4, currentPasseggeroId);
+                    int updated = psUpdate.executeUpdate();
+                    if (updated == 0) {
+                        conn.rollback();
+                        return false;
+                    }
+                }
+
+                // 3) Se il numero documento è cambiato, aggiorno anche il riferimento nella prenotazione
+                if (!currentPasseggeroId.equals(nDocumento)) {
+                    try (PreparedStatement psUpdatePren = conn.prepareStatement(sqlUpdatePrenotazione)) {
+                        psUpdatePren.setString(1, nDocumento);
+                        psUpdatePren.setString(2, numeroBiglietto);
+                        psUpdatePren.executeUpdate();
+                    }
+                }
+
+                conn.commit();
+                return true;
+            } catch (SQLException ex) {
+                conn.rollback();
+                throw ex;
+            }
+        } catch (SQLException e) {
+            System.err.println("Errore durante l'aggiornamento del passeggero nella prenotazione: " + e.getMessage());
+            return false;
+        }
+    }
+
     // Metodi per Bagaglio
     @Override
     public List<Bagaglio> getAllBagagli() {

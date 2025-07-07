@@ -5,6 +5,7 @@ import model.*;
 import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableCellRenderer;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -124,6 +125,15 @@ public class UserDashboard extends JFrame {
 
         // Set main panel as content pane
         setContentPane(mainPanel);
+    }
+
+    // Helper method to count non-space characters in a string
+    private int countNonSpaceChars(String text) {
+        int count = 0;
+        for (char c : text.toCharArray()) {
+            if (c != ' ') count++;
+        }
+        return count;
     }
 
     private void initializeTestData() {
@@ -438,6 +448,12 @@ public class UserDashboard extends JFrame {
             return;
         }
 
+        // Check if text fields have at least 3 non-space characters
+        if (countNonSpaceChars(name) < 3 || countNonSpaceChars(surname) < 3 || countNonSpaceChars(document) < 3) {
+            JOptionPane.showMessageDialog(this, "Nome, cognome e documento devono contenere almeno 3 caratteri diversi dallo spazio", "Errore", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
         // Open seat selection dialog
         String seat = selectSeat(flightCode);
         if (seat == null || seat.isEmpty()) {
@@ -700,25 +716,64 @@ public class UserDashboard extends JFrame {
         DefaultTableModel model = new DefaultTableModel() {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return false; // Make all cells non-editable
+                return column == 7; // Only the Actions column is editable
             }
         };
         model.addColumn("Codice Volo");
-
         model.addColumn("Numero Biglietto");
         model.addColumn("Passeggero");
         model.addColumn("N° Documento");
         model.addColumn("Posto");
         model.addColumn("Stato");
         model.addColumn("Bagagli");
+        model.addColumn("Azioni"); // New column for actions
 
         myFlightsTable = new JTable(model);
+
+        // Set custom renderer for status column
+        myFlightsTable.getColumnModel().getColumn(5).setCellRenderer(new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+
+                if (value != null) {
+                    StatoPrenotazione stato = (StatoPrenotazione) value;
+                    if (stato == StatoPrenotazione.confermata) {
+                        c.setBackground(UIManager.SUCCESS_COLOR); // Green
+                        c.setForeground(Color.WHITE);
+                    } else if (stato == StatoPrenotazione.inAttesa) {
+                        c.setBackground(Color.YELLOW); // Yellow
+                        c.setForeground(Color.BLACK);
+                    } else if (stato == StatoPrenotazione.cancellato) {
+                        c.setBackground(Color.RED); // Red
+                        c.setForeground(Color.WHITE);
+                    } else {
+                        c.setBackground(isSelected ? table.getSelectionBackground() : table.getBackground());
+                        c.setForeground(isSelected ? table.getSelectionForeground() : table.getForeground());
+                    }
+                }
+
+                ((JLabel)c).setHorizontalAlignment(JLabel.CENTER);
+                return c;
+            }
+        });
+
+        // Set custom renderer and editor for the actions column
+        myFlightsTable.getColumnModel().getColumn(7).setCellRenderer(new ButtonRenderer());
+        myFlightsTable.getColumnModel().getColumn(7).setCellEditor(new ButtonEditor(new JCheckBox()));
 
         // Add mouse listener to show baggage details when a booking is clicked
         myFlightsTable.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
             public void mouseClicked(java.awt.event.MouseEvent evt) {
                 int row = myFlightsTable.rowAtPoint(evt.getPoint());
+                int column = myFlightsTable.columnAtPoint(evt.getPoint());
+
+                // Skip if clicking on the actions column
+                if (column == 7) {
+                    return;
+                }
+
                 if (row >= 0) {
                     showBaggageDetails(bookings.get(row));
                 }
@@ -730,13 +785,175 @@ public class UserDashboard extends JFrame {
         myFlightsPanel.add(scrollPane, BorderLayout.CENTER);
 
         // Add refresh button
-
         updateMyFlightsTable();
         JPanel buttonPanel = new JPanel();
         myFlightsPanel.add(buttonPanel, BorderLayout.SOUTH);
 
         // Add panel to tabbed pane
         tabbedPane.addTab("I Miei Voli", myFlightsPanel);
+    }
+
+    // Button renderer for the actions column
+    private class ButtonRenderer extends JButton implements TableCellRenderer {
+        public ButtonRenderer() {
+            setOpaque(true);
+        }
+
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+            if (value != null) {
+                setText(value.toString());
+            } else {
+                setText("");
+            }
+
+            // Only show the button for bookings with status "inAttesa"
+            StatoPrenotazione stato = (StatoPrenotazione) table.getValueAt(row, 5);
+            setEnabled(stato == StatoPrenotazione.inAttesa);
+
+            return this;
+        }
+    }
+
+    // Button editor for the actions column
+    private class ButtonEditor extends DefaultCellEditor {
+        protected JButton button;
+        private String label;
+        private boolean isPushed;
+        private int currentRow;
+
+        public ButtonEditor(JCheckBox checkBox) {
+            super(checkBox);
+            button = new JButton();
+            button.setOpaque(true);
+            button.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    fireEditingStopped();
+                }
+            });
+        }
+
+        @Override
+        public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
+            if (value != null) {
+                label = value.toString();
+            } else {
+                label = "";
+            }
+            button.setText(label);
+            isPushed = true;
+            currentRow = row;
+            return button;
+        }
+
+        @Override
+        public Object getCellEditorValue() {
+            if (isPushed) {
+                // Get the booking for the current row
+                Prenotazione booking = bookings.get(currentRow);
+
+                // Only allow editing if the booking status is "inAttesa"
+                if (booking.getStato() == StatoPrenotazione.inAttesa) {
+                    editPassengerInfo(booking);
+                }
+            }
+            isPushed = false;
+            return label;
+        }
+
+        @Override
+        public boolean stopCellEditing() {
+            isPushed = false;
+            return super.stopCellEditing();
+        }
+    }
+
+    // Method to edit passenger information
+    private void editPassengerInfo(Prenotazione booking) {
+        // Create a dialog for editing passenger information
+        JDialog dialog = new JDialog(this, "Modifica Informazioni Passeggero", true);
+        dialog.setLayout(new BorderLayout());
+
+        // Create form panel
+        JPanel formPanel = new JPanel(new GridLayout(0, 2, 10, 10));
+        formPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        // Get current passenger information
+        Passeggero passeggero = booking.getPasseggero();
+
+        // Create text fields for editing
+        JTextField nomeField = new JTextField(passeggero.getNome());
+        JTextField cognomeField = new JTextField(passeggero.getCognome());
+        JTextField documentoField = new JTextField(passeggero.getnDocumento());
+
+        // Add fields to form panel
+        formPanel.add(new JLabel("Nome:"));
+        formPanel.add(nomeField);
+        formPanel.add(new JLabel("Cognome:"));
+        formPanel.add(cognomeField);
+        formPanel.add(new JLabel("Numero Documento:"));
+        formPanel.add(documentoField);
+
+        // Create button panel
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JButton saveButton = new JButton("Salva");
+        JButton cancelButton = new JButton("Annulla");
+
+        // Add action listeners to buttons
+        saveButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                // Get the updated values
+                String nome = nomeField.getText().trim();
+                String cognome = cognomeField.getText().trim();
+                String documento = documentoField.getText().trim();
+
+                // Validate input
+                if (nome.isEmpty() || cognome.isEmpty() || documento.isEmpty()) {
+                    JOptionPane.showMessageDialog(dialog, "Tutti i campi sono obbligatori", "Errore", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
+                // Update passenger information in the database
+                boolean success = controller.updatePassengerInfo(booking.getNumeroBiglietto(), nome, cognome, documento);
+
+                if (success) {
+                    // Update the passenger object
+                    passeggero.setNome(nome);
+                    passeggero.setCognome(cognome);
+                    passeggero.setnDocumento(documento);
+
+                    // Update the table
+                    updateMyFlightsTable();
+
+                    JOptionPane.showMessageDialog(dialog, "Informazioni passeggero aggiornate con successo", "Successo", JOptionPane.INFORMATION_MESSAGE);
+                    dialog.dispose();
+                } else {
+                    JOptionPane.showMessageDialog(dialog, "Errore durante l'aggiornamento delle informazioni", "Errore", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+
+        cancelButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                dialog.dispose();
+            }
+        });
+
+        // Add buttons to button panel
+        buttonPanel.add(saveButton);
+        buttonPanel.add(cancelButton);
+
+        // Add panels to dialog
+        dialog.add(formPanel, BorderLayout.CENTER);
+        dialog.add(buttonPanel, BorderLayout.SOUTH);
+
+        // Set dialog properties
+        dialog.pack();
+        dialog.setLocationRelativeTo(this);
+        dialog.setVisible(true);
     }
 
     private void filterMyFlights() {
@@ -754,12 +971,18 @@ public class UserDashboard extends JFrame {
                 passengerName.toLowerCase().contains(searchText) ||
                 booking.getNumeroBiglietto().toLowerCase().contains(searchText)) {
 
+                // Add "Modifica" button text for bookings with status "inAttesa"
+                String actionText = booking.getStato() == StatoPrenotazione.inAttesa ? "Modifica" : "";
+
                 model.addRow(new Object[]{
+                    booking.getCodiceVolo(),
                     booking.getNumeroBiglietto(),
                     passengerName,
+                    passenger.getnDocumento(),
                     booking.getPosto(),
                     booking.getStato(),
-                    baggageCount
+                    baggageCount,
+                    actionText
                 });
             }
         }
@@ -773,14 +996,18 @@ public class UserDashboard extends JFrame {
             Passeggero passenger = booking.getPasseggero();
             int baggageCount = booking.getBagagli() != null ? booking.getBagagli().size() : 0;
 
+            // Add "Modifica" button text for bookings with status "inAttesa"
+            String actionText = booking.getStato() == StatoPrenotazione.inAttesa ? "Modifica" : "";
+
             model.addRow(new Object[]{
-                    booking.getCodiceVolo(),
+                booking.getCodiceVolo(),
                 booking.getNumeroBiglietto(),
                 passenger.getNome() + " " + passenger.getCognome(),
-                    passenger.getnDocumento(),
+                passenger.getnDocumento(),
                 booking.getPosto(),
                 booking.getStato(),
-                baggageCount
+                baggageCount,
+                actionText
             });
         }
     }
@@ -836,12 +1063,15 @@ public class UserDashboard extends JFrame {
                             status = "Smarrimento segnalato";
                         }
 
+                        // Only add the button text for baggage in the "caricato" or "ritirabile" states
+                        String actionText = (baggage.getStato() == StatoBagaglio.caricato || baggage.getStato() == StatoBagaglio.ritirabile) ? "Segnala smarrimento" : "";
+
                         model.addRow(new Object[]{
                                 flightInfo,
                                 tckInfo,
                                 baggage.getCodice(),
                                 status,
-                                "Segnala Smarrimento"
+                                actionText
                         });
                     }
                 }
@@ -880,9 +1110,23 @@ public class UserDashboard extends JFrame {
                 Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
 
                 String status = (String) value;
-                if (status != null && status.contains("Smarrimento segnalato")) {
-                    c.setBackground(Color.RED);
-                    c.setForeground(Color.WHITE);
+                if (status != null) {
+                    if (status.contains("Smarrimento segnalato") || status.equals("smarrito")) {
+                        c.setBackground(Color.RED);
+                        c.setForeground(Color.WHITE);
+                    } else if (status.equals("inElaborazione")) {
+                        c.setBackground(Color.YELLOW);
+                        c.setForeground(Color.BLACK);
+                    } else if (status.equals("caricato")) {
+                        c.setBackground(Color.GREEN);
+                        c.setForeground(Color.BLACK);
+                    } else if (status.equals("ritirabile")) {
+                        c.setBackground(new Color(173, 216, 230)); // Light blue
+                        c.setForeground(Color.BLACK);
+                    } else {
+                        c.setBackground(isSelected ? table.getSelectionBackground() : table.getBackground());
+                        c.setForeground(isSelected ? table.getSelectionForeground() : table.getForeground());
+                    }
                 } else {
                     c.setBackground(isSelected ? table.getSelectionBackground() : table.getBackground());
                     c.setForeground(isSelected ? table.getSelectionForeground() : table.getForeground());
@@ -896,11 +1140,21 @@ public class UserDashboard extends JFrame {
         baggageTable.getColumnModel().getColumn(4).setCellRenderer(new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-                JButton button = new JButton("Segnala Smarrimento");
-                button.setBackground(new Color(255, 200, 200));
-                return button;
+                // Get the baggage status from the status column (column 3)
+                String status = (String) table.getValueAt(row, 3);
+
+                // Only show the button for baggage in the "caricato" or "ritirabile" states
+                if (status != null && (status.equals("caricato") || status.equals("ritirabile"))) {
+                    JButton button = new JButton("Segnala Smarrimento");
+                    button.setBackground(new Color(255, 200, 200));
+                    return button;
+                }
+
+                // For all other states, return an empty label
+                return new JLabel("");
             }
         });
+
 
         // Add mouse listener to handle button clicks in the action column
         baggageTable.addMouseListener(new java.awt.event.MouseAdapter() {
@@ -922,13 +1176,16 @@ public class UserDashboard extends JFrame {
         baggageTrackingPanel.add(scrollPane, BorderLayout.CENTER);
         updateBaggageTable(baggageTable);
         // Add refresh button
-
-
-
-
+        JButton refreshButton = new JButton("Aggiorna");
+        refreshButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                updateBaggageTable(baggageTable);
+            }
+        });
 
         JPanel buttonPanel = new JPanel();
-
+        buttonPanel.add(refreshButton);
         baggageTrackingPanel.add(buttonPanel, BorderLayout.SOUTH);
 
         // Initialize the table
@@ -970,12 +1227,15 @@ public class UserDashboard extends JFrame {
                 status = "Smarrimento segnalato";
             }
 
+            // Only add the button text for baggage in the "caricato" or "ritirabile" states
+            String actionText = (baggage.getStato() == StatoBagaglio.caricato || baggage.getStato() == StatoBagaglio.ritirabile) ? "Segnala Smarrimento" : "";
+
             model.addRow(new Object[]{
                     flightInfo,
                     tckInfo,
                 baggage.getCodice(),
                 status,
-                "Segnala Smarrimento"
+                actionText
             });
         }
     }
@@ -987,7 +1247,34 @@ public class UserDashboard extends JFrame {
      * @param baggageTable The table containing the baggage
      */
     private void reportLostBaggageFromTable(String baggageCode, int row, JTable baggageTable) {
-        // Show dialog for description
+        // Find the baggage
+        Bagaglio baggage = null;
+        for (Bagaglio b : baggages) {
+            if (b.getCodice().equals(baggageCode)) {
+                baggage = b;
+                break;
+            }
+        }
+
+        // Check if baggage exists and is in the correct state
+        if (baggage == null) {
+            JOptionPane.showMessageDialog(this,
+                "Bagaglio non trovato.",
+                "Errore",
+                JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        // Check if baggage is in the correct state (caricato or ritirabile)
+        if (baggage.getStato() != StatoBagaglio.caricato && baggage.getStato() != StatoBagaglio.ritirabile) {
+            JOptionPane.showMessageDialog(this,
+                "Il bagaglio può essere segnalato come smarrito solo se è nello stato 'caricato' o 'ritirabile'.",
+                "Stato non valido",
+                JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        // Show dialog for confirmation
         int scelta = JOptionPane.showConfirmDialog(this,
             "Sei sicuro di voler segnalare questo bagaglio come smarrito?" ,"Conferma", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
 
@@ -998,16 +1285,11 @@ public class UserDashboard extends JFrame {
                 JOptionPane.INFORMATION_MESSAGE);
 
             // Mark the baggage as lost
-            for (Bagaglio baggage : baggages) {
-                if (baggage.getCodice().equals(baggageCode)) {
-                    baggage.setStato(StatoBagaglio.smarrito);
-                    // Update the table
-                    controller.aggiornaBagaglio(baggage);
+            baggage.setStato(StatoBagaglio.smarrito);
+            // Update the table
+            controller.aggiornaBagaglio(baggage);
 
-                    updateBaggageTable(baggageTable);
-                    break;
-                }
-            }
+            updateBaggageTable(baggageTable);
         }
     }
 
@@ -1023,7 +1305,25 @@ public class UserDashboard extends JFrame {
         for (Bagaglio baggage : baggages) {
             if (baggage.getCodice().equals(code)) {
                 baggageStatusLabel.setText("Stato: " + baggage.getStato());
-                reportLostButton.setEnabled(true);
+
+                // Enable the report lost button only if the baggage is in the caricato or ritirabile state
+                if (baggage.getStato() == StatoBagaglio.caricato || baggage.getStato() == StatoBagaglio.ritirabile) {
+                    reportLostButton.setEnabled(true);
+                } else {
+                    reportLostButton.setEnabled(false);
+                    if (baggage.getStato() == StatoBagaglio.smarrito) {
+                        JOptionPane.showMessageDialog(this, 
+                            "Questo bagaglio è già stato segnalato come smarrito.", 
+                            "Informazione", 
+                            JOptionPane.INFORMATION_MESSAGE);
+                    } else {
+                        JOptionPane.showMessageDialog(this, 
+                            "Il bagaglio può essere segnalato come smarrito solo se è nello stato 'caricato' o 'ritirabile'.", 
+                            "Stato non valido", 
+                            JOptionPane.WARNING_MESSAGE);
+                    }
+                }
+
                 found = true;
                 break;
             }

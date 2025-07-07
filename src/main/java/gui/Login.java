@@ -115,6 +115,18 @@ public class Login extends JFrame {
             return;
         }
 
+        // Validate username (min 5 chars, no spaces)
+        if (username.length() < 5 || username.contains(" ")) {
+            statusLabel.setText("Username: minimo 5 caratteri senza spazi");
+            return;
+        }
+
+        // Validate password (min 5 chars, no spaces)
+        if (password.length() < 5 || password.contains(" ")) {
+            statusLabel.setText("Password: minimo 5 caratteri senza spazi");
+            return;
+        }
+
         // Usa il controller per autenticare l'utente verificando anche il ruolo
         Utente user = controller.login(username, password, selectedUserType);
 
