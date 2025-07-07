@@ -9,8 +9,25 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Implementazione dell'interfaccia PostgresDao che fornisce l'accesso ai dati
+ * del sistema aeroportuale attraverso un database PostgreSQL.
+ * 
+ * Questa classe gestisce tutte le operazioni di lettura e scrittura sul database,
+ * inclusa la gestione di utenti, voli, prenotazioni, bagagli, gate e posti.
+ * Utilizza la classe ConnessioneDatabase per stabilire connessioni al database.
+ */
 public class ImplementazionePostgresDao implements PostgresDao {
 
+    /**
+     * {@inheritDoc}
+     * 
+     * Implementazione che recupera un utente dal database in base alle credenziali fornite.
+     * Esegue una query SQL per verificare l'esistenza dell'utente con le credenziali
+     * e il tipo specificati.
+     * 
+     * @throws RuntimeException Se si verifica un errore di caricamento del driver del database
+     */
     public Utente getUtenteByCredentialsAndType(String login, String password, String tipo) {
         String query = "SELECT * FROM Utente WHERE username = ? AND password = ? AND ruolo = ?";
         try (Connection conn = ConnessioneDatabase.getInstance().getConnection();  PreparedStatement stmt = conn.prepareStatement(query)) {
@@ -83,6 +100,20 @@ public class ImplementazionePostgresDao implements PostgresDao {
     }
 
 
+    /**
+     * {@inheritDoc}
+     * 
+     * Implementazione che inserisce un nuovo volo nel database e crea automaticamente
+     * i posti associati al volo. L'operazione viene eseguita come una transazione atomica:
+     * se una parte fallisce, tutte le modifiche vengono annullate.
+     * 
+     * Il metodo esegue i seguenti passaggi:
+     * 1. Inserisce i dati del volo nella tabella Volo
+     * 2. Crea i posti per il volo nella tabella posto, organizzati in file e lettere
+     *    (es. 1A, 1B, 1C, 1D, 1E, 1F, 2A, ecc.)
+     * 
+     * @throws RuntimeException Se si verifica un errore di caricamento del driver del database
+     */
     @Override
     public boolean insertVolo(Volo volo) {
         String sqlVolo =

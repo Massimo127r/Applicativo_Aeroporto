@@ -19,12 +19,10 @@ public class AdminDashboard extends JFrame {
     private JTable flightsTable;
     private JPanel flightsPanel;
     private JPanel addFlightPanel;
-    private JPanel updateFlightPanel;
-    private JPanel gateAssignmentPanel;
-    private JPanel baggageStatusPanel;
-    private JPanel updateBaggagePanel;
     private JPanel lostBaggagePanel;
-
+    private static final String errore = "Errore";
+    private static final String successo = "Successo";
+    private static final String modifica = "Modifica";
     // Data
     private List<Volo> flights;
     private List<Gate> gates;
@@ -437,7 +435,6 @@ public class AdminDashboard extends JFrame {
             public void actionPerformed(ActionEvent e) {
                 try {
                     String airline = airlineField.getText();
-                    String flightType = (String) flightTypeComboBox.getSelectedItem();
                     String origin = originField.getText();
                     String destination = destinationField.getText();
                     String time = timeField.getText();
@@ -456,7 +453,7 @@ public class AdminDashboard extends JFrame {
                         totalSeats <= 0 ) {
                         JOptionPane.showMessageDialog(AdminDashboard.this,
                             "Tutti i campi sono obbligatori. I posti totali devono essere maggiori di zero",
-                            "Errore", JOptionPane.ERROR_MESSAGE);
+                            errore, JOptionPane.ERROR_MESSAGE);
                         return;
                     }
 
@@ -465,7 +462,7 @@ public class AdminDashboard extends JFrame {
                         destinationNonSpaceChars < 3 || timeNonSpaceChars < 3) {
                         JOptionPane.showMessageDialog(AdminDashboard.this,
                             "I campi di testo devono contenere almeno 3 caratteri diversi dallo spazio",
-                            "Errore", JOptionPane.ERROR_MESSAGE);
+                                errore, JOptionPane.ERROR_MESSAGE);
                         return;
                     }
 
@@ -473,7 +470,7 @@ public class AdminDashboard extends JFrame {
                     if (!origin.equals("Napoli") && !destination.equals("Napoli")) {
                         JOptionPane.showMessageDialog(AdminDashboard.this,
                             "L'origine o la destinazione deve essere Napoli",
-                            "Errore", JOptionPane.ERROR_MESSAGE);
+                                errore, JOptionPane.ERROR_MESSAGE);
                         return;
                     }
 
@@ -481,7 +478,7 @@ public class AdminDashboard extends JFrame {
                     if (status == StatoVolo.inRitardo && delay < 1) {
                         JOptionPane.showMessageDialog(AdminDashboard.this,
                             "Per i voli in ritardo, il ritardo deve essere maggiore o uguale a 1 minuto",
-                            "Errore", JOptionPane.ERROR_MESSAGE);
+                                errore, JOptionPane.ERROR_MESSAGE);
                         return;
                     }
 
@@ -490,10 +487,7 @@ public class AdminDashboard extends JFrame {
                     boolean success = false;
 
                     try {
-                        // Create new flight
-                        Volo newFlight = new Volo(code, airline, origin, destination, time, status, date, delay, totalSeats, totalSeats, 0);
 
-                        // Save to database
                         success = controller.inserisciVolo(code, airline, origin, destination, time, status, date, delay, totalSeats, totalSeats);
                     } catch (IllegalArgumentException ex) {
                         JOptionPane.showMessageDialog(AdminDashboard.this,
@@ -503,16 +497,15 @@ public class AdminDashboard extends JFrame {
                     }
 
                     if (success) {
-                        // Refresh flights from database
                         refreshFlightsTable();
 
                         JOptionPane.showMessageDialog(AdminDashboard.this,
                             "Volo aggiunto con successo\nCodice Volo: " + code,
-                            "Successo", JOptionPane.INFORMATION_MESSAGE);
+                            successo, JOptionPane.INFORMATION_MESSAGE);
                     } else {
                         JOptionPane.showMessageDialog(AdminDashboard.this,
                             "Errore durante l'inserimento del volo nel database",
-                            "Errore", JOptionPane.ERROR_MESSAGE);
+                                errore, JOptionPane.ERROR_MESSAGE);
                     }
 
                     // Clear form
@@ -528,7 +521,7 @@ public class AdminDashboard extends JFrame {
                 } catch (Exception ex) {
                     JOptionPane.showMessageDialog(AdminDashboard.this,
                         "Errore: " + ex.getMessage(),
-                        "Errore", JOptionPane.ERROR_MESSAGE);
+                            errore, JOptionPane.ERROR_MESSAGE);
                 }
             }
         });
@@ -643,7 +636,7 @@ public class AdminDashboard extends JFrame {
 
         // Add some test data for lost baggage
         for (Bagaglio bagaglio : baggages) {
-                model.addRow(new Object[]{bagaglio.getCodice(), bagaglio.getStato(),  "Modifica"});
+                model.addRow(new Object[]{bagaglio.getCodice(), bagaglio.getStato(),  modifica});
 
         }
 
@@ -703,7 +696,7 @@ public class AdminDashboard extends JFrame {
                 model.addRow(new Object[]{
                     bagaglio.getCodice(),
                     bagaglio.getStato(),
-                    "Modifica"
+                    modifica
                 });
             }
         }
@@ -769,11 +762,11 @@ public class AdminDashboard extends JFrame {
                     if (success) {
                         JOptionPane.showMessageDialog(this,
                             "Stato del bagaglio aggiornato con successo",
-                            "Successo", JOptionPane.INFORMATION_MESSAGE);
+                            successo, JOptionPane.INFORMATION_MESSAGE);
                     } else {
                         JOptionPane.showMessageDialog(this,
                             "Errore durante l'aggiornamento dello stato del bagaglio",
-                            "Errore", JOptionPane.ERROR_MESSAGE);
+                            errore, JOptionPane.ERROR_MESSAGE);
                     }
 
                     // If the status is no longer "smarrito", remove only this row from the table
@@ -850,7 +843,7 @@ public class AdminDashboard extends JFrame {
 
         // Add edit button and gate assignment button if applicable
         JPanel editButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        JButton editButton = new JButton("Modifica");
+        JButton editButton = new JButton(modifica);
         editButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -979,7 +972,7 @@ public class AdminDashboard extends JFrame {
         // For now, we'll just add some example bookings
         List<Prenotazione> prenotazioni =  controller.getPrenotazioniByVolo(flight);
         for( Prenotazione p : prenotazioni){
-            model.addRow(new Object[]{p.getNumeroBiglietto(), p.getPasseggero().getNome() + " " + p.getPasseggero().getCognome(), p.getPasseggero().getnDocumento(), p.getPosto(), p.getStato(), p.getBagagli().size(), "Modifica"});
+            model.addRow(new Object[]{p.getNumeroBiglietto(), p.getPasseggero().getNome() + " " + p.getPasseggero().getCognome(), p.getPasseggero().getnDocumento(), p.getPosto(), p.getStato(), p.getBagagli().size(), modifica});
 
         }
 
@@ -1135,7 +1128,7 @@ public class AdminDashboard extends JFrame {
                         if (delayValue < 1) {
                             JOptionPane.showMessageDialog(dialog,
                                 "Il ritardo deve essere maggiore o uguale a 1 minuto",
-                                "Errore", JOptionPane.ERROR_MESSAGE);
+                                errore, JOptionPane.ERROR_MESSAGE);
                             // Reset to previous status
                             statusComboBox.setSelectedItem(flight.getStato());
                         } else {
@@ -1145,7 +1138,7 @@ public class AdminDashboard extends JFrame {
                     } catch (NumberFormatException ex) {
                         JOptionPane.showMessageDialog(dialog,
                             "Inserisci un valore numerico valido per il ritardo",
-                            "Errore", JOptionPane.ERROR_MESSAGE);
+                            errore, JOptionPane.ERROR_MESSAGE);
                         // Reset to previous status
                         statusComboBox.setSelectedItem(flight.getStato());
                     }
@@ -1178,14 +1171,14 @@ public class AdminDashboard extends JFrame {
                     if (airline.isEmpty() || origin.isEmpty() || destination.isEmpty() || time.isEmpty()) {
                         JOptionPane.showMessageDialog(dialog,
                             "Tutti i campi sono obbligatori",
-                            "Errore", JOptionPane.ERROR_MESSAGE);
+                            errore, JOptionPane.ERROR_MESSAGE);
                         return;
                     }
 
                     if (status == StatoVolo.inRitardo && delay < 1) {
                         JOptionPane.showMessageDialog(dialog,
                             "Per i voli in ritardo, il ritardo deve essere maggiore o uguale a 1 minuto",
-                            "Errore", JOptionPane.ERROR_MESSAGE);
+                            errore, JOptionPane.ERROR_MESSAGE);
                         return;
                     }
 
@@ -1220,7 +1213,7 @@ public class AdminDashboard extends JFrame {
 
                         JOptionPane.showMessageDialog(dialog,
                             "Volo aggiornato con successo",
-                            "Successo", JOptionPane.INFORMATION_MESSAGE);
+                            successo, JOptionPane.INFORMATION_MESSAGE);
                     } catch (IllegalArgumentException ex) {
                         JOptionPane.showMessageDialog(dialog,
                             ex.getMessage(),
@@ -1327,11 +1320,11 @@ public class AdminDashboard extends JFrame {
                 if (success) {
                     JOptionPane.showMessageDialog(dialog,
                             "Stato '" + selectedStatus + "' applicato a tutti i bagagli del volo " + flight.getCodiceVolo(),
-                            "Successo", JOptionPane.INFORMATION_MESSAGE);
+                            successo, JOptionPane.INFORMATION_MESSAGE);
                 } else {
                     JOptionPane.showMessageDialog(dialog,
                             "Errore durante l'aggiornamento dello stato dei bagagli",
-                            "Errore", JOptionPane.ERROR_MESSAGE);
+                            errore, JOptionPane.ERROR_MESSAGE);
                 }
 
 
@@ -1435,7 +1428,7 @@ public class AdminDashboard extends JFrame {
 
                 JOptionPane.showMessageDialog(dialog,
                     "Prenotazione aggiornata con successo",
-                    "Successo", JOptionPane.INFORMATION_MESSAGE);
+                    successo, JOptionPane.INFORMATION_MESSAGE);
             }
         });
         bookingSavePanel.add(saveBookingButton);
@@ -1462,7 +1455,7 @@ public class AdminDashboard extends JFrame {
         List<Bagaglio> bagagli  = controller.getBagagliByPrenotazione(ticketNumber);
 
         for (Bagaglio b : bagagli) {
-            baggageModel.addRow(new Object[]{b.getCodice(), b.getStato(), "Modifica"});
+            baggageModel.addRow(new Object[]{b.getCodice(), b.getStato(), modifica});
         }
 
         JTable baggageTable = new JTable(baggageModel);
