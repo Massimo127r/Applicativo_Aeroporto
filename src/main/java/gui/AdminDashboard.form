@@ -30,30 +30,6 @@
             <border type="none"/>
             <children/>
           </grid>
-          <grid id="u1v2w" binding="updateFlightPanel" layout-manager="BorderLayout" hgap="0" vgap="0">
-            <constraints>
-              <tabbedpane title="Aggiorna Volo"/>
-            </constraints>
-            <properties/>
-            <border type="none"/>
-            <children/>
-          </grid>
-          <grid id="g5h6i" binding="gateAssignmentPanel" layout-manager="BorderLayout" hgap="0" vgap="0">
-            <constraints>
-              <tabbedpane title="Assegna Gate"/>
-            </constraints>
-            <properties/>
-            <border type="none"/>
-            <children/>
-          </grid>
-          <grid id="x1y2z" binding="updateBaggagePanel" layout-manager="BorderLayout" hgap="0" vgap="0">
-            <constraints>
-              <tabbedpane title="Aggiorna Bagaglio"/>
-            </constraints>
-            <properties/>
-            <border type="none"/>
-            <children/>
-          </grid>
           <grid id="m9n0o" binding="lostBaggagePanel" layout-manager="BorderLayout" hgap="0" vgap="0">
             <constraints>
               <tabbedpane title="Bagagli Smarriti"/>

@@ -191,7 +191,7 @@ public class Controller {
      * @param nuovoStato  Nuovo stato da assegnare ai bagagli
      * @return true se l'aggiornamento è avvenuto con successo, false altrimenti
      */
-    public boolean aggiornatAllBagagli(String codiceVolo, StatoBagaglio nuovoStato) {
+    public boolean aggiornaAllBagagli(String codiceVolo, StatoBagaglio nuovoStato) {
         return dao.updateBagagliByVolo(codiceVolo, nuovoStato);
     }
 

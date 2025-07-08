@@ -11,6 +11,10 @@ import javax.swing.SwingUtilities;
  */
 public class Main {
     /**
+     * Costruttore privato per evitare l'istanziazione della classe Main
+     */
+    private Main(){}
+    /**
      * Metodo principale che avvia l'applicazione.
      * Inizializza il controller, applica il tema all'interfaccia grafica
      * e visualizza la schermata di benvenuto.
@@ -23,7 +27,7 @@ public class Main {
     public static void main(String[] args) {
          SwingUtilities.invokeLater(() -> {
                 UIManager.applyTheme();
-                Controller controller = new Controller();
+             Controller controller = new Controller();
                 Welcome welcomeFrame = new Welcome(controller);
                 welcomeFrame.setVisible(true);
             });
