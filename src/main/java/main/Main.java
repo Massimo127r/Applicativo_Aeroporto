@@ -1,3 +1,5 @@
+package main;
+
 import controller.Controller;
 
 import gui.UIManager;
@@ -11,7 +13,7 @@ import javax.swing.SwingUtilities;
  */
 public class Main {
     /**
-     * Costruttore privato per evitare l'istanziazione della classe Main
+     * Costruttore privato per evitare l'istanziazione della classe Main.Main
      */
     private Main(){}
     /**
