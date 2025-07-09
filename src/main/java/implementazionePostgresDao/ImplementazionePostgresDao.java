@@ -19,9 +19,9 @@ import java.util.List;
  */
 public class ImplementazionePostgresDao implements PostgresDao {
 
-/**
- * Costruttore privato per evitare l'istanziazione della classe ImplementazionePostgresDao
- */
+    /**
+     * Costruttore privato per evitare l'istanziazione della classe ImplementazionePostgresDao
+     */
     public ImplementazionePostgresDao() {
     }
 
@@ -32,11 +32,10 @@ public class ImplementazionePostgresDao implements PostgresDao {
      * Esegue una query SQL per verificare l'esistenza dell'utente con le credenziali
      * e il tipo specificati.
      *
-     * @throws RuntimeException Se si verifica un errore di caricamento del driver del database
      */
     public Utente getUtenteByCredentialsAndType(String login, String password, String tipo) {
         String query = "SELECT u.nome, u.cognome FROM Utente u WHERE username = ? AND password = ? AND ruolo = ?";
-        try (Connection conn = ConnessioneDatabase.getInstance().getConnection(); PreparedStatement stmt = conn.prepareStatement(query)) {
+        try (Connection conn = ConnessioneDatabase.getInstance().connection; PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setString(1, login);
             stmt.setString(2, password);
             stmt.setString(3, tipo.toLowerCase());
@@ -50,8 +49,6 @@ public class ImplementazionePostgresDao implements PostgresDao {
             }
         } catch (SQLException e) {
             System.err.println("Errore durante il recupero dell'utente: " + e.getMessage());
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
         }
         return null;
     }
@@ -62,12 +59,11 @@ public class ImplementazionePostgresDao implements PostgresDao {
      * Implementazione che inserisce un nuovo utente nel database.
      * Esegue una query SQL per inserire i dati dell'utente nella tabella Utente.
      *
-     * @throws RuntimeException Se si verifica un errore di caricamento del driver del database
      */
     @Override
     public boolean insertUtente(Utente utente, String tipo) {
         String query = "INSERT INTO Utente (username, password, nome, cognome, ruolo) VALUES (?, ?, ?, ?, ?)";
-        try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
+        try (Connection conn = ConnessioneDatabase.getInstance().connection;
              PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setString(1, utente.getLogin());
             stmt.setString(2, utente.getPassword());
@@ -78,8 +74,6 @@ public class ImplementazionePostgresDao implements PostgresDao {
         } catch (SQLException e) {
             System.err.println("Errore durante l'inserimento dell'utente: " + e.getMessage());
             return false;
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
         }
     }
 
@@ -89,14 +83,13 @@ public class ImplementazionePostgresDao implements PostgresDao {
      * Implementazione che recupera tutti i voli dal database.
      * Esegue una query SQL per ottenere tutti i voli ordinati per data in ordine decrescente.
      *
-     * @throws RuntimeException Se si verifica un errore di caricamento del driver del database
      */
     @Override
     public List<Volo> getAllVoli() {
         List<Volo> voli = new ArrayList<>();
         String query = "SELECT v.codice, v.compagnia, v.origine, v.destinazione, v.orario, v.stato, v.data, v.ritardo, v.posti_totali, v.posti_disponibili, v.gate" +
                 " FROM Volo v ORDER BY  data DESC";
-        try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
+        try (Connection conn = ConnessioneDatabase.getInstance().connection;
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(query)) {
             while (rs.next()) {
@@ -117,8 +110,6 @@ public class ImplementazionePostgresDao implements PostgresDao {
             }
         } catch (SQLException e) {
             System.err.println("Errore durante il recupero dei voli: " + e.getMessage());
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
         }
         return voli;
     }
@@ -136,7 +127,6 @@ public class ImplementazionePostgresDao implements PostgresDao {
      * 2. Crea i posti per il volo nella tabella posto, organizzati in file e lettere
      * (es. 1A, 1B, 1C, 1D, 1E, 1F, 2A, ecc.)
      *
-     * @throws RuntimeException Se si verifica un errore di caricamento del driver del database
      */
     @Override
     public boolean insertVolo(Volo volo) {
@@ -147,13 +137,12 @@ public class ImplementazionePostgresDao implements PostgresDao {
         String sqlPosto =
                 "INSERT INTO posto (codice_volo, posto, occupato) VALUES (?, ?, false)";
 
-        try (Connection conn = ConnessioneDatabase.getInstance().getConnection()) {
+        try (Connection conn = ConnessioneDatabase.getInstance().connection) {
             conn.setAutoCommit(false);
 
             try (PreparedStatement psVolo = conn.prepareStatement(sqlVolo);
                  PreparedStatement psPosto = conn.prepareStatement(sqlPosto)) {
 
-                // 1) Inserisco il volo
                 psVolo.setString(1, volo.getCodiceVolo());
                 psVolo.setString(2, volo.getCompagnia());
                 psVolo.setString(3, volo.getOrigine());
@@ -170,25 +159,21 @@ public class ImplementazionePostgresDao implements PostgresDao {
                     return false;
                 }
 
-                // 2) Genero e inserisco uno alla volta i posti
                 int totalSeats = volo.getPostiTotali();
                 final int perRow = 6;
                 int fullRows = totalSeats / perRow;
                 int remainder = totalSeats % perRow;
 
-                // File complete
                 for (int row = 1; row <= fullRows; row++) {
                     for (int s = 0; s < perRow; s++) {
                         String seatLabel = row + String.valueOf((char) ('A' + s));
                         psPosto.setString(1, volo.getCodiceVolo());
                         psPosto.setString(2, seatLabel);
-                        // Inserimento immediato, senza batch
                         if (psPosto.executeUpdate() == 0) {
                             throw new SQLException("Fallito insert posto " + seatLabel);
                         }
                     }
                 }
-                // Fila parziale
                 if (remainder > 0) {
                     int row = fullRows + 1;
                     for (int s = 0; s < remainder; s++) {
@@ -214,8 +199,6 @@ public class ImplementazionePostgresDao implements PostgresDao {
         } catch (SQLException e) {
             System.err.println("Errore connessione/preparazione: " + e.getMessage());
             return false;
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
         }
     }
 
@@ -225,12 +208,11 @@ public class ImplementazionePostgresDao implements PostgresDao {
      * Implementazione che aggiorna i dati di un volo esistente nel database.
      * Esegue una query SQL di UPDATE per modificare tutti i campi del volo specificato.
      *
-     * @throws RuntimeException Se si verifica un errore di caricamento del driver del database
      */
     @Override
     public boolean updateVolo(Volo volo) {
         String query = "UPDATE Volo SET compagnia= ?, origine = ?, destinazione = ?, orario = ?::time, stato = ?::statovolo, data = ?, ritardo = ?, posti_totali = ?, posti_disponibili = ? WHERE codice = ?";
-        try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
+        try (Connection conn = ConnessioneDatabase.getInstance().connection;
              PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setString(1, volo.getCompagnia());
             stmt.setString(2, volo.getOrigine());
@@ -246,8 +228,6 @@ public class ImplementazionePostgresDao implements PostgresDao {
         } catch (SQLException e) {
             System.err.println("Errore durante l'aggiornamento del volo: " + e.getMessage());
             return false;
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
         }
     }
 
@@ -257,13 +237,12 @@ public class ImplementazionePostgresDao implements PostgresDao {
      * Implementazione che recupera tutti i gate dell'aeroporto dal database.
      * Esegue una query SQL per ottenere i numeri di tutti i gate disponibili.
      *
-     * @throws RuntimeException Se si verifica un errore di caricamento del driver del database
      */
     @Override
     public List<Gate> getAllGates() {
         List<Gate> gates = new ArrayList<>();
         String query = "SELECT gate.numero FROM gate";
-        try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
+        try (Connection conn = ConnessioneDatabase.getInstance().connection;
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(query)) {
             while (rs.next()) {
@@ -273,8 +252,6 @@ public class ImplementazionePostgresDao implements PostgresDao {
             }
         } catch (SQLException e) {
             System.err.println("Errore durante il recupero dei gate: " + e.getMessage());
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
         }
         return gates;
     }
@@ -285,12 +262,11 @@ public class ImplementazionePostgresDao implements PostgresDao {
      * Implementazione che assegna un gate a un volo specifico.
      * Esegue una query SQL di UPDATE per associare il gate al volo nel database.
      *
-     * @throws RuntimeException Se si verifica un errore di caricamento del driver del database
      */
     @Override
     public boolean assignGateToFlight(int codiceGate, String codiceVolo) {
         String query = "UPDATE volo SET gate = ? WHERE codice =?";
-        try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
+        try (Connection conn = ConnessioneDatabase.getInstance().connection;
              PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, codiceGate);
             stmt.setString(2, codiceVolo);
@@ -298,8 +274,6 @@ public class ImplementazionePostgresDao implements PostgresDao {
         } catch (SQLException e) {
             System.err.println("Errore durante l'assegnazione del gate al volo: " + e.getMessage());
             return false;
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
         }
     }
 
@@ -309,7 +283,6 @@ public class ImplementazionePostgresDao implements PostgresDao {
      * Implementazione che recupera tutte le prenotazioni effettuate da un utente specifico.
      * Esegue una query SQL complessa che recupera le prenotazioni con i relativi passeggeri e bagagli.
      *
-     * @throws RuntimeException Se si verifica un errore di caricamento del driver del database
      */
     @Override
     public List<Prenotazione> getPrenotazioneByUtente(Utente utente) {
@@ -334,7 +307,7 @@ public class ImplementazionePostgresDao implements PostgresDao {
                 + "WHERE p.username = ? "
                 + "ORDER BY p.codice_volo";
 
-        try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
+        try (Connection conn = ConnessioneDatabase.getInstance().connection;
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, utente.getLogin());
@@ -342,7 +315,6 @@ public class ImplementazionePostgresDao implements PostgresDao {
                 while (rs.next()) {
                     String numeroBiglietto = rs.getString("numero_biglietto");
                     Prenotazione prenotazione = null;
-                    // cerco se l'ho già creato
                     for (Prenotazione p : prenotazioniList) {
                         if (p.getNumeroBiglietto().equals(numeroBiglietto)) {
                             prenotazione = p;
@@ -350,7 +322,6 @@ public class ImplementazionePostgresDao implements PostgresDao {
                         }
                     }
                     if (prenotazione == null) {
-                        // creo la nuova prenotazione
                         String posto = rs.getString("posto");
                         StatoPrenotazione stato =
                                 StatoPrenotazione.valueOf(rs.getString("stato_prenotazione"));
@@ -371,7 +342,6 @@ public class ImplementazionePostgresDao implements PostgresDao {
                         prenotazioniList.add(prenotazione);
                     }
 
-                    // aggiungo il bagaglio se esiste
                     String codiceBag = rs.getString("codice_bagaglio");
                     if (codiceBag != null) {
                         String statoBagStr = rs.getString("stato_bagaglio");
@@ -387,8 +357,6 @@ public class ImplementazionePostgresDao implements PostgresDao {
         } catch (SQLException e) {
             System.err.println("Errore durante il recupero delle prenotazioni: "
                     + e.getMessage());
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
         }
 
         return prenotazioniList;
@@ -400,7 +368,6 @@ public class ImplementazionePostgresDao implements PostgresDao {
      * Implementazione che recupera tutte le prenotazioni associate a un volo specifico.
      * Esegue una query SQL complessa che recupera le prenotazioni con i relativi passeggeri e bagagli.
      *
-     * @throws RuntimeException Se si verifica un errore di caricamento del driver del database
      */
     @Override
     public List<Prenotazione> getPrenotazioniByVolo(Volo volo) {
@@ -415,17 +382,15 @@ public class ImplementazionePostgresDao implements PostgresDao {
                 "WHERE p.codice_volo = ? " +
                 "ORDER BY p.numero_biglietto";
 
-        try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
+        try (Connection conn = ConnessioneDatabase.getInstance().connection;
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            // Imposto il parametro sul codice del volo
             ps.setString(1, volo.getCodiceVolo());
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     String numeroBiglietto = rs.getString("numero_biglietto");
 
-                    // Cerco in lista una prenotazione già creata per questo biglietto
                     Prenotazione prenotazione = null;
                     for (Prenotazione p : prenotazioniList) {
                         if (p.getNumeroBiglietto().equals(numeroBiglietto)) {
@@ -434,7 +399,6 @@ public class ImplementazionePostgresDao implements PostgresDao {
                         }
                     }
 
-                    // Se non esiste, la creo e la aggiungo
                     if (prenotazione == null) {
                         String posto = rs.getString("posto");
                         StatoPrenotazione statoPren =
@@ -450,7 +414,6 @@ public class ImplementazionePostgresDao implements PostgresDao {
                         prenotazioniList.add(prenotazione);
                     }
 
-                    // Aggiungo eventuale bagaglio
                     String codiceBagaglio = rs.getString("codice_bagaglio");
                     if (codiceBagaglio != null) {
                         String statoBagaglioStr = rs.getString("stato_bagaglio");
@@ -466,8 +429,6 @@ public class ImplementazionePostgresDao implements PostgresDao {
         } catch (SQLException e) {
             System.err.println("Errore recupero prenotazioni per volo "
                     + volo.getCodiceVolo() + ": " + e.getMessage());
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
         }
 
         return prenotazioniList;
@@ -483,17 +444,15 @@ public class ImplementazionePostgresDao implements PostgresDao {
      * 3. Aggiornamento dei posti disponibili del volo
      * 4. Inserimento dei bagagli associati
      *
-     * @throws RuntimeException Se si verifica un errore di caricamento del driver del database
      */
     @Override
     public boolean insertPrenotazione(Prenotazione prenotazione, String codiceVolo, Utente utente) {
         boolean success = false;
 
-        try (Connection conn = ConnessioneDatabase.getInstance().getConnection()) {
+        try (Connection conn = ConnessioneDatabase.getInstance().connection) {
             conn.setAutoCommit(false);
 
             try {
-                // --- 1) Cerco il passeggero per numero_documento ---
                 String selectP = "SELECT id_passeggero FROM passeggero WHERE numero_documento = ?";
                 Integer passengerId = null;
                 try (PreparedStatement psSel = conn.prepareStatement(selectP)) {
@@ -505,7 +464,6 @@ public class ImplementazionePostgresDao implements PostgresDao {
                     }
                 }
 
-                // --- 2) Se non esiste lo inserisco ---
                 if (passengerId == null) {
                     String insertP =
                             "INSERT INTO passeggero (nome, cognome, numero_documento) VALUES (?, ?, ?)";
@@ -527,7 +485,6 @@ public class ImplementazionePostgresDao implements PostgresDao {
                     }
                 }
 
-                // --- 3) Inserisco la prenotazione e ne recupero l'id ---
                 String insertPr = ""
                         + "INSERT INTO prenotazione "
                         + "(codice_volo, id_passeggero, numero_biglietto, posto, stato, username) "
@@ -553,7 +510,6 @@ public class ImplementazionePostgresDao implements PostgresDao {
                     }
                 }
 
-                // --- 4) Inserisco eventuali bagagli con FK sull'id della prenotazione ---
                 if (prenotazione.getBagagli() != null && !prenotazione.getBagagli().isEmpty()) {
                     String insertB =
                             "INSERT INTO bagaglio (codice, stato, id_prenotazione) VALUES (?, ?, ?)";
@@ -581,7 +537,6 @@ public class ImplementazionePostgresDao implements PostgresDao {
                     }
                 }
 
-                // --- 6) Aggiorno la tabella posto: imposto occupato = true ---
                 String updateP = ""
                         + "UPDATE posto "
                         + "SET occupato = TRUE "
@@ -604,8 +559,6 @@ public class ImplementazionePostgresDao implements PostgresDao {
             }
         } catch (SQLException e) {
             e.printStackTrace();
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
         }
 
         return success;
@@ -620,11 +573,9 @@ public class ImplementazionePostgresDao implements PostgresDao {
      * del volo e imposta il posto come non occupato.
      * L'operazione viene eseguita come una transazione atomica.
      *
-     * @throws RuntimeException Se si verifica un errore di caricamento del driver del database
      */
     @Override
     public boolean updatePrenotazione(StatoPrenotazione nuovoStato, String numeroBiglietto) {
-        // query principali
         String sqlUpdatePren =
                 "UPDATE prenotazione SET stato = ? WHERE numero_biglietto = ?";
         String sqlSelectInfo =
@@ -634,7 +585,7 @@ public class ImplementazionePostgresDao implements PostgresDao {
         String sqlUpdatePosto =
                 "UPDATE posto SET occupato = ? WHERE codice_volo = ? AND posto = ?";
 
-        try (Connection conn = ConnessioneDatabase.getInstance().getConnection()) {
+        try (Connection conn = ConnessioneDatabase.getInstance().connection) {
             conn.setAutoCommit(false);
 
             try (
@@ -651,21 +602,17 @@ public class ImplementazionePostgresDao implements PostgresDao {
                     return false;
                 }
 
-                // ---- se lo stato è cancellato ----
                 if (nuovoStato == StatoPrenotazione.cancellato) {
-                    // leggo codice_volo e posto dalla prenotazione
                     psInfo.setString(1, numeroBiglietto);
                     try (ResultSet rs = psInfo.executeQuery()) {
                         if (rs.next()) {
                             String codiceVolo = rs.getString("codice_volo");
                             String seat = rs.getString("posto");
 
-                            // aggiorno volo: +1 posto disponibile
                             psVolo.setInt(1, 1);
                             psVolo.setString(2, codiceVolo);
                             psVolo.executeUpdate();
 
-                            // aggiorno posto: occupato = false
                             psPosto.setBoolean(1, false);
                             psPosto.setString(2, codiceVolo);
                             psPosto.setString(3, seat);
@@ -683,8 +630,6 @@ public class ImplementazionePostgresDao implements PostgresDao {
         } catch (SQLException e) {
             System.err.println("Errore durante l'aggiornamento della prenotazione: " + e.getMessage());
             return false;
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
         }
     }
 
@@ -696,26 +641,21 @@ public class ImplementazionePostgresDao implements PostgresDao {
      * 1. Recupera l'ID del passeggero associato alla prenotazione
      * 2. Aggiorna i dati del passeggero (nome, cognome, numero documento)
      *
-     * @throws RuntimeException Se si verifica un errore di caricamento del driver del database
      */
     @Override
     public boolean updatePasseggeroInPrenotazione(String numeroBiglietto, String nome, String cognome, String nDocumento) {
-        // Query per ottenere l'ID del passeggero associato alla prenotazione
         String sqlSelectPasseggeroId =
                 "SELECT id_passeggero FROM prenotazione WHERE numero_biglietto = ?";
 
-        // Query per aggiornare i dati del passeggero
         String sqlUpdatePasseggero =
                 "UPDATE passeggero SET nome = ?, cognome = ?, numero_documento = ? WHERE id_passeggero = ?";
 
-        // Query per aggiornare il riferimento al passeggero nella prenotazione se il numero documento è cambiato
 
 
-        try (Connection conn = ConnessioneDatabase.getInstance().getConnection()) {
+        try (Connection conn = ConnessioneDatabase.getInstance().connection) {
             conn.setAutoCommit(false);
 
             try {
-                // 1) Recupero l'ID del passeggero attuale
                 int currentPasseggeroId;
                 try (PreparedStatement psSelect = conn.prepareStatement(sqlSelectPasseggeroId)) {
                     psSelect.setString(1, numeroBiglietto);
@@ -728,7 +668,6 @@ public class ImplementazionePostgresDao implements PostgresDao {
                     }
                 }
 
-                // 2) Aggiorno i dati del passeggero
                 try (PreparedStatement psUpdate = conn.prepareStatement(sqlUpdatePasseggero)) {
                     psUpdate.setString(1, nome);
                     psUpdate.setString(2, cognome);
@@ -741,7 +680,6 @@ public class ImplementazionePostgresDao implements PostgresDao {
                     }
                 }
 
-                // 3) Se il numero documento è cambiato, aggiorno anche il riferimento nella prenotazione
 
 
                 conn.commit();
@@ -753,17 +691,14 @@ public class ImplementazionePostgresDao implements PostgresDao {
         } catch (SQLException e) {
             System.err.println("Errore durante l'aggiornamento del passeggero nella prenotazione: " + e.getMessage());
             return false;
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
         }
     }
 
-    // Metodi per Bagaglio
     @Override
     public List<Bagaglio> getAllBagagli() {
         List<Bagaglio> bagagli = new ArrayList<>();
         String query = "SELECT b.codice, b.stato FROM bagaglio b WHERE stato = 'smarrito'";
-        try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
+        try (Connection conn = ConnessioneDatabase.getInstance().connection;
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(query)) {
             while (rs.next()) {
@@ -774,8 +709,6 @@ public class ImplementazionePostgresDao implements PostgresDao {
             }
         } catch (SQLException e) {
             System.err.println("Errore durante il recupero dei bagagli: " + e.getMessage());
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
         }
         return bagagli;
     }
@@ -784,7 +717,7 @@ public class ImplementazionePostgresDao implements PostgresDao {
     public List<Bagaglio> getBagagliByPrenotazione(String numeroBiglietto) {
         List<Bagaglio> bagagli = new ArrayList<>();
         String query = "SELECT b.* FROM bagaglio b JOIN prenotazione pb ON b.id_prenotazione = pb.id_prenotazione WHERE pb.numero_biglietto = ?";
-        try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
+        try (Connection conn = ConnessioneDatabase.getInstance().connection;
              PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setString(1, numeroBiglietto);
             try (ResultSet rs = stmt.executeQuery()) {
@@ -797,8 +730,6 @@ public class ImplementazionePostgresDao implements PostgresDao {
             }
         } catch (SQLException e) {
             System.err.println("Errore durante il recupero dei bagagli per prenotazione: " + e.getMessage());
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
         }
         return bagagli;
     }
@@ -806,7 +737,7 @@ public class ImplementazionePostgresDao implements PostgresDao {
     @Override
     public Bagaglio getBagaglioByCodice(String codice) {
         String query = "SELECT bagaglio.stato FROM bagaglio WHERE codice = ?";
-        try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
+        try (Connection conn = ConnessioneDatabase.getInstance().connection;
              PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setString(1, codice);
             try (ResultSet rs = stmt.executeQuery()) {
@@ -817,8 +748,6 @@ public class ImplementazionePostgresDao implements PostgresDao {
             }
         } catch (SQLException e) {
             System.err.println("Errore durante il recupero del bagaglio: " + e.getMessage());
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
         }
         return null;
     }
@@ -827,7 +756,7 @@ public class ImplementazionePostgresDao implements PostgresDao {
     @Override
     public boolean updateBagaglio(Bagaglio bagaglio) {
         String query = "UPDATE bagaglio SET stato = ? WHERE codice = ?";
-        try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
+        try (Connection conn = ConnessioneDatabase.getInstance().connection;
              PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setString(1, bagaglio.getStato().toString());
             stmt.setString(2, bagaglio.getCodice());
@@ -835,8 +764,6 @@ public class ImplementazionePostgresDao implements PostgresDao {
         } catch (SQLException e) {
             System.err.println("Errore durante l'aggiornamento del bagaglio: " + e.getMessage());
             return false;
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
         }
     }
 
@@ -849,21 +776,17 @@ public class ImplementazionePostgresDao implements PostgresDao {
                         "WHERE p.id_prenotazione = b.id_prenotazione " +
                         "  AND p.codice_volo = ?";
 
-        try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
+        try (Connection conn = ConnessioneDatabase.getInstance().connection;
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            // 1 = nuovo stato, 2 = codice del volo
             ps.setString(1, nuovoStato.toString());
             ps.setString(2, codiceVolo);
 
-            // esegue e ritorna quante righe sono state aggiornate
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             System.err.println("Errore durante l'aggiornamento dei bagagli per volo "
                     + codiceVolo + ": " + e.getMessage());
             return false;
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
         }
     }
 
@@ -876,7 +799,7 @@ public class ImplementazionePostgresDao implements PostgresDao {
                         "FROM posto " +
                         "WHERE codice_volo = ?";
 
-        try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
+        try (Connection conn = ConnessioneDatabase.getInstance().connection;
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, coidceVolo);
@@ -893,9 +816,6 @@ public class ImplementazionePostgresDao implements PostgresDao {
 
         } catch (SQLException e) {
             System.err.println("Errore in getPostiByVolo: " + e.getMessage());
-            // se preferisci, rilancia un unchecked:
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
         }
 
         return posti;
@@ -913,25 +833,20 @@ public class ImplementazionePostgresDao implements PostgresDao {
                 + "ORDER BY p.codice_volo";
 
 
-        try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
+        try (Connection conn = ConnessioneDatabase.getInstance().connection;
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            // filtro per l'utente passato
             ps.setString(1, user.getLogin());
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     Bagaglio b = new Bagaglio(rs.getString("codice"), StatoBagaglio.valueOf(rs.getString("stato")));
-                    // Se StatoBagaglio è un enum, ricava il valore corretto
-                    // opzionale: se Bagaglio tiene traccia dell'id della prenotazione
                     bagagli.add(b);
                 }
             }
 
         } catch (SQLException e) {
             e.printStackTrace();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
         }
 
         return bagagli;
@@ -946,7 +861,7 @@ public class ImplementazionePostgresDao implements PostgresDao {
                 "JOIN bagaglio b ON b.id_prenotazione = p.id_prenotazione " +
                 "JOIN passeggero pa ON pa.id_passeggero = p.id_passeggero " +
                 " WHERE b.codice = ?";
-        try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
+        try (Connection conn = ConnessioneDatabase.getInstance().connection;
              PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setString(1, codiceBagaglio);
             try (ResultSet rs = stmt.executeQuery()) {
@@ -957,8 +872,6 @@ public class ImplementazionePostgresDao implements PostgresDao {
             }
         } catch (SQLException e) {
             System.err.println("Errore durante il recupero del bagaglio: " + e.getMessage());
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
         }
         return null;
     }
