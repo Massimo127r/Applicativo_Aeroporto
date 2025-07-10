@@ -7,65 +7,86 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
+/**
+ * Classe che implementa la schermata di benvenuto dell'applicazione aeroportuale.
+ * Rappresenta il punto di ingresso dell'applicazione e offre all'utente la possibilità
+ * di accedere al sistema o registrarsi come nuovo utente.
+ * Fornisce un'interfaccia semplice con due pulsanti principali per navigare verso
+ * le schermate di login o registrazione.
+ */
 public class Welcome extends JFrame {
+    /**
+     * Pannello principale che contiene tutti gli elementi dell'interfaccia.
+     */
     private JPanel mainPanel;
+
+    /**
+     * Pulsante per accedere alla schermata di login.
+     */
     private JButton loginButton;
+
+    /**
+     * Pulsante per accedere alla schermata di registrazione.
+     */
     private JButton registerButton;
+
+    /**
+     * Etichetta che visualizza il titolo della schermata di benvenuto.
+     */
     private JLabel titleLabel;
 
-    // Controller per l'interazione con il database
+    /**
+     * Riferimento al controller che gestisce la logica dell'applicazione.
+     */
     private Controller controller;
 
+    /**
+     * Costruttore della schermata di benvenuto.
+     * Inizializza l'interfaccia grafica con i pulsanti per accedere al login o alla registrazione.
+     * Configura l'aspetto visivo e gli eventi dei componenti dell'interfaccia.
+     * 
+     * @param controller Il controller che gestisce la logica dell'applicazione
+     */
     public Welcome(Controller controller) {
         this.controller = controller;
 
-        // Set up the frame
         setTitle("Aeroporto di Napoli - Benvenuto");
         setSize(450, 300);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 
-        // Initialize components
         mainPanel = new JPanel();
         mainPanel.setLayout(new BorderLayout(10, 10));
-        
-        // Title panel
+
         JPanel titlePanel = new JPanel();
         titleLabel = new JLabel("Benvenuto all'Aeroporto di Napoli");
         titlePanel.add(titleLabel);
-        
-        // Buttons panel
+
         JPanel buttonsPanel = new JPanel();
         buttonsPanel.setLayout(new GridLayout(2, 1, 10, 10));
-        
+
         loginButton = new JButton("Accedi");
         registerButton = new JButton("Registrati");
-        
+
         buttonsPanel.add(loginButton);
         buttonsPanel.add(registerButton);
-        
-        // Add panels to main panel
+
         mainPanel.add(titlePanel, BorderLayout.NORTH);
         mainPanel.add(buttonsPanel, BorderLayout.CENTER);
-        
-        // Add padding
+
         mainPanel.setBorder(BorderFactory.createEmptyBorder(30, 30, 30, 30));
 
-        // Apply theme to frame
         UIManager.styleFrame(this);
 
-        // Style components
         UIManager.stylePanel(mainPanel);
         UIManager.stylePanel(titlePanel);
         UIManager.stylePanel(buttonsPanel);
         UIManager.styleButton(loginButton);
         UIManager.styleButton(registerButton);
-        
-        // Style the title label
+
         titleLabel.setFont(UIManager.TITLE_FONT);
         titleLabel.setForeground(UIManager.PRIMARY_COLOR);
 
-        // Add action listeners
         loginButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -80,21 +101,26 @@ public class Welcome extends JFrame {
             }
         });
 
-        // Add main panel to frame
         setContentPane(mainPanel);
     }
 
+    /**
+     * Apre la schermata di login.
+     * Crea una nuova istanza della schermata di login, la rende visibile e chiude la finestra di benvenuto corrente.
+     */
     private void openLoginScreen() {
-        // Create and show login frame
         Login loginFrame = new Login(controller);
         loginFrame.setVisible(true);
-        this.dispose(); // Close welcome window
+        this.dispose();
     }
 
+    /**
+     * Apre la schermata di registrazione.
+     * Crea una nuova istanza della schermata di registrazione, la rende visibile e chiude la finestra di benvenuto corrente.
+     */
     private void openRegistrationScreen() {
-        // Create and show registration frame
         Registration registrationFrame = new Registration(controller);
         registrationFrame.setVisible(true);
-        this.dispose(); // Close welcome window
+        this.dispose();
     }
 }
