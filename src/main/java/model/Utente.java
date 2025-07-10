@@ -9,27 +9,27 @@ public class Utente {
     /**
      * Nome utente o email utilizzato per l'accesso al sistema.
      */
-    protected String login;
+    private String login;
 
     /**
      * Password utilizzata per l'autenticazione dell'utente.
      */
-    protected String password;
+    private String password;
 
     /**
      * Nome dell'utente.
      */
-    protected String nome;
+    private String nome;
 
     /**
      * Cognome dell'utente.
      */
-    protected String cognome;
+    private String cognome;
 
     /**
      * Ruolo dell'utente nel sistema (es. "amministratore", "generico").
      */
-    protected String ruolo;
+    private String ruolo;
 
     /**
      * Costruttore della classe Utente.
@@ -67,25 +67,6 @@ public class Utente {
         this.login = login;
     }
 
-    /**
-     * Restituisce il nome utente (login) dell'utente.
-     * Questo metodo è un alias di getLogin().
-     *
-     * @return Il nome utente dell'utente
-     */
-    public String getNomeUtente() {
-        return login;
-    }
-
-    /**
-     * Imposta il nome utente (login) dell'utente.
-     * Questo metodo è un alias di setLogin().
-     *
-     * @param login Il nuovo nome utente dell'utente
-     */
-    public void setNomeUtente(String login) {
-        this.login = login;
-    }
 
     /**
      * Restituisce la password dell'utente.

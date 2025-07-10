@@ -448,6 +448,7 @@ public class AdminDashboard extends JFrame {
         JComboBox<StatoVolo> statusComboBox = new JComboBox<>(StatoVolo.values());
         JTextField dateField = new JTextField(LocalDate.now().toString());
         JTextField delayField = new JTextField("0");
+        delayField.setEnabled(false);
         JTextField totalSeatsField = new JTextField("0");
         JTextField seatsField = new JTextField("0");
 
@@ -470,6 +471,17 @@ public class AdminDashboard extends JFrame {
         });
 
         flightTypeComboBox.setSelectedIndex(0);
+
+        statusComboBox.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                StatoVolo selectedStatus = (StatoVolo) statusComboBox.getSelectedItem();
+                delayField.setEnabled(selectedStatus == StatoVolo.inRitardo);
+                if (selectedStatus != StatoVolo.inRitardo) {
+                    delayField.setText("0");
+                }
+            }
+        });
 
         formPanel.add(new JLabel("Compagnia:"));
         formPanel.add(airlineField);
@@ -548,8 +560,9 @@ public class AdminDashboard extends JFrame {
                     boolean success = false;
 
                     try {
+                        Volo volo = new Volo(code, airline, origin, destination, time, status, date, delay, totalSeats, totalSeats, 0);
 
-                        success = controller.inserisciVolo(code, airline, origin, destination, time, status, date, delay, totalSeats, totalSeats);
+                        success = controller.inserisciVolo(volo);
                     } catch (IllegalArgumentException ex) {
                         JOptionPane.showMessageDialog(AdminDashboard.this,
                                 ex.getMessage(),
@@ -1106,6 +1119,7 @@ public class AdminDashboard extends JFrame {
         statusComboBox.setSelectedItem(flight.getStato());
         JTextField dateField = new JTextField(flight.getData().toString());
         JTextField delayField = new JTextField(String.valueOf(flight.getTempoRitardo()));
+        delayField.setEnabled(flight.getStato() == StatoVolo.inRitardo);
         JTextField totalSeatsField = new JTextField(String.valueOf(flight.getPostiTotali()));
         JTextField availableSeatsField = new JTextField(String.valueOf(flight.getPostiDisponibili()));
 
@@ -1128,6 +1142,9 @@ public class AdminDashboard extends JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 StatoVolo selectedStatus = (StatoVolo) statusComboBox.getSelectedItem();
+
+                delayField.setEnabled(selectedStatus == StatoVolo.inRitardo);
+
                 if (selectedStatus == StatoVolo.inRitardo && flight.getStato() != StatoVolo.inRitardo) {
                     String delayStr = JOptionPane.showInputDialog(dialog,
                             "Inserisci il ritardo in minuti (deve essere maggiore o uguale a 1):",
@@ -1154,6 +1171,8 @@ public class AdminDashboard extends JFrame {
                                 ERRORE, JOptionPane.ERROR_MESSAGE);
                         statusComboBox.setSelectedItem(flight.getStato());
                     }
+                } else if (selectedStatus != StatoVolo.inRitardo) {
+                    delayField.setText("0");
                 }
             }
         });

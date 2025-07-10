@@ -87,10 +87,6 @@ public class UserDashboard extends JFrame {
      */
     private JSpinner baggageCountSpinner;
 
-    /**
-     * Tabella che visualizza le prenotazioni effettuate.
-     */
-    private JTable bookingsTable;
 
     /**
      * Tabella che visualizza i bagagli associati alle prenotazioni.
@@ -127,15 +123,7 @@ public class UserDashboard extends JFrame {
      */
     private JTextField baggageCodeField;
 
-    /**
-     * Etichetta che visualizza lo stato del bagaglio tracciato.
-     */
-    private JLabel baggageStatusLabel;
 
-    /**
-     * Pulsante per segnalare un bagaglio come smarrito.
-     */
-    private JButton reportLostButton;
 
     /**
      * Lista di tutti i voli disponibili nel sistema.
@@ -354,11 +342,11 @@ public class UserDashboard extends JFrame {
                     StatoVolo stato = (StatoVolo) value;
                     switch (stato) {
                         case inRitardo -> {
-                            c.setBackground(UIManager.ERROR_COLOR);
+                            c.setBackground(UIManager.WARNING_COLOR);
                             c.setForeground(Color.WHITE);
                         }
                         case cancellato -> {
-                            c.setBackground(UIManager.WARNING_COLOR);
+                            c.setBackground(UIManager.ERROR_COLOR);
                             c.setForeground(Color.BLACK);
                         }
                         case atterrato, decollato -> {

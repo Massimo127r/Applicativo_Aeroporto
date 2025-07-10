@@ -121,13 +121,6 @@ public interface PostgresDao {
      */
     List<Bagaglio> getBagagliByPrenotazione(String numeroBiglietto);
 
-    /**
-     * Recupera un bagaglio specifico tramite il suo codice.
-     *
-     * @param codice Codice identificativo del bagaglio
-     * @return L'oggetto Bagaglio corrispondente al codice, o null se non trovato
-     */
-    Bagaglio getBagaglioByCodice(String codice);
 
     /**
      * Aggiorna i dati di un bagaglio esistente.

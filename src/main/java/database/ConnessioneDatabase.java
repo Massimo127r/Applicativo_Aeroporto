@@ -22,7 +22,7 @@ public class ConnessioneDatabase {
     /**
      * URL di connessione al database.
      */
-    private String url = "jdbc:postgresql://localhost:5432/DBFINALE";
+    private String url = "jdbc:postgresql://localhost:5432/database";
 
     /**
      * Nome utente per l'accesso al database.
@@ -33,7 +33,7 @@ public class ConnessioneDatabase {
     /**
      * Password per l'accesso al database.
      */
-    private String password = "Massimorusso127";
+    private String password = "";
 
     /**
      * Nome del driver JDBC per PostgreSQL.

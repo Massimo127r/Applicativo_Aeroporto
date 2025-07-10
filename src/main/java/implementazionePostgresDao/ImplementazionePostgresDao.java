@@ -240,7 +240,7 @@ public class ImplementazionePostgresDao implements PostgresDao {
      */
     @Override
     public List<Gate> getAllGates() {
-        List<Gate> gates = new ArrayList<>();
+       List<Gate> gates = new ArrayList<>();
         String query = "SELECT gate.numero FROM gate";
         try (Connection conn = ConnessioneDatabase.getInstance().connection;
              Statement stmt = conn.createStatement();
@@ -732,24 +732,6 @@ public class ImplementazionePostgresDao implements PostgresDao {
             System.err.println("Errore durante il recupero dei bagagli per prenotazione: " + e.getMessage());
         }
         return bagagli;
-    }
-
-    @Override
-    public Bagaglio getBagaglioByCodice(String codice) {
-        String query = "SELECT bagaglio.stato FROM bagaglio WHERE codice = ?";
-        try (Connection conn = ConnessioneDatabase.getInstance().connection;
-             PreparedStatement stmt = conn.prepareStatement(query)) {
-            stmt.setString(1, codice);
-            try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) {
-                    StatoBagaglio stato = StatoBagaglio.valueOf(rs.getString("stato"));
-                    return new Bagaglio(codice, stato);
-                }
-            }
-        } catch (SQLException e) {
-            System.err.println("Errore durante il recupero del bagaglio: " + e.getMessage());
-        }
-        return null;
     }
 
 

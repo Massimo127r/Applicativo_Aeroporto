@@ -63,21 +63,10 @@ public class Controller {
     /**
      * Inserisce un nuovo volo nel sistema.
      *
-     * @param codiceVolo     Codice identificativo del volo
-     * @param compagnia      Nome della compagnia aerea
-     * @param origine        Aeroporto di partenza
-     * @param destinazione   Aeroporto di arrivo
-     * @param orarioPrevisto Orario previsto di partenza
-     * @param stato          Stato attuale del volo
-     * @param data           Data del volo
-     * @param tempoRitardo   Tempo di ritardo in minuti
-     * @param totalSeats     Numero totale di posti disponibili
-     * @param availableSeats Numero di posti ancora disponibili
+     * @param volo L'oggetto Volo con i dati da inserire
      * @return true se l'inserimento è avvenuto con successo, false altrimenti
      */
-    public boolean inserisciVolo(String codiceVolo, String compagnia, String origine, String destinazione,
-                                 String orarioPrevisto, StatoVolo stato, LocalDate data, int tempoRitardo, int totalSeats, int availableSeats) {
-        Volo volo = new Volo(codiceVolo, compagnia, origine, destinazione, orarioPrevisto, stato, data, tempoRitardo, totalSeats, availableSeats, 0);
+    public boolean inserisciVolo(Volo volo) {
         return dao.insertVolo(volo);
     }
 
@@ -164,15 +153,7 @@ public class Controller {
         return dao.getBagagliByPrenotazione(numeroBiglietto);
     }
 
-    /**
-     * Recupera un bagaglio specifico tramite il suo codice.
-     *
-     * @param codice Codice identificativo del bagaglio
-     * @return L'oggetto Bagaglio corrispondente al codice, o null se non trovato
-     */
-    public Bagaglio getBagaglioByCodice(String codice) {
-        return dao.getBagaglioByCodice(codice);
-    }
+
 
     /**
      * Aggiorna i dati di un bagaglio esistente.
