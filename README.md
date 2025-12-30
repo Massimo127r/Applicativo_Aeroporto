@@ -1,69 +1,80 @@
-# Aeroporto Napoli - Applicazione Desktop
+# Naples Airport Management System — Java Desktop Application
+  ![Type](https://img.shields.io/badge/type-University%20Project-orange)
 
-## Descrizione del Progetto
-L’applicazione desktop, sviluppata in Java con Swing, fornisce una gestione centralizzata ed efficiente di tutte le operazioni aeroportuali dell’aeroporto di Napoli. Grazie a un database relazionale PostgreSQL, l’app consente il monitoraggio in tempo reale di voli, prenotazioni, bagagli.
+University group project developed for the Object-Oriented Programming course  
+B.Sc. in Computer Science — University of Naples Federico II (A.Y. 2024/2025)
 
-## Funzionalità Principali
-- **Autenticazione**  
-  Accesso tramite login e password; due ruoli utente (generico e amministratore) con privilegi differenziati.
+This repository contains a Java Swing desktop application backed by a PostgreSQL
+relational database for managing core airport operations: flights, bookings,
+baggage tracking, and user access control.
 
-- **Utenti Generici**  
-  - Consultazione voli programmati  
-  - Prenotazione biglietti (inclusi numero del biglietto, posto e stato)  
-  - Ricerca e modifica prenotazioni per passeggero o codice volo  
+> Note: The repository structure follows the official coursework template required by the academic assignment.
 
-- **Amministratori**  
-  - Tutte le operazioni degli utenti generici  
-  - Inserimento e aggiornamento voli (compagnia, origini/destinazioni, orario, stato, gate)  
-  - Gestione delle prenotazioni e dei bagagli
+## Project Overview
 
-- **Gestione Bagagli**  
-  - Creazione e tracciamento bagagli associati a prenotazioni  
-  - Aggiornamento stato (in Elaborazione, caricato, disponibile, smarrito)  
-  - Segnalazione e gestione dei bagagli smarriti  
+The application supports role-based access for:
 
-- **Homepage Operativa**  
-  Panoramica in tempo reale di voli in arrivo/partenza, con evidenza di ritardi e cancellazioni.
+- **Generic users**:
+  - view scheduled flights
+  - create and modify reservations
+  - consult baggage status
+- **Administrators**:
+  - all generic user features
+  - create/update flight details
+  - manage bookings and baggage
 
-- **Ricerca Avanzata**  
-  Filtri rapidi su voli, prenotazioni, passeggeri e bagagli per scenari ad alto traffico.
+Additional features include:
+- real-time flight overview with delays/cancellations
+- search and filtering on flights, bookings, passengers, and baggage
 
-## Requisiti
-- Java 14 (o superiore)  
-- PostgreSQL  
-- pgAdmin (per importare il backup)  
-- Maven (o altro tool di build compatibile)
+## Core Functionality
 
-## Installazione e Avvio
-1. **Clona il repository**  
-   ```bash
-   git clone https://github.com/Massimo127r/Applicativo_Aeroporto.git
-   cd Applicativo_Aeroporto
-   ```
+### Authentication & Roles
+- Login with credentials
+- Two roles: generic user and administrator
 
-2. **Importa il database**  
-   - Apri pgAdmin.  
-   - Crea un nuovo database (es. `aeroporto_na`).  
-   - Esegui lo script di backup presente in `database/database.sql` per ripristinare tutte le tabelle e i dati.
+### Flight Management
+- Browse flights
+- Create and update flight information
+- Assign gates and update statuses
 
-3. **Configura la connessione**  
-   Apri il file:
-   ```
-   src/main/java/database/ConnessioneDatabase.java
-   ```
-   e sostituisci la stringa di connessione con la tua password:
-   ```java
-   private String url = "jdbc:postgresql://localhost:5432/aeroporto_na";
-   private String user = "postgres";
-   private String password = "<LA_TUA_PASSWORD>";
-   ```
+### Booking System
+- Ticket creation with seat assignment
+- Search and modify bookings
 
-4. **Compila e avvia**  
-   Con Maven:
-   ```bash
-   mvn clean package
-   java -jar target/aeroporto-app.jar
-   ```
+### Baggage Handling
+- Track baggage state (processing, loaded, available, lost)
+- Lost baggage reporting and recovery workflows
 
-## Contribuire
-Per bug, suggerimenti o contributi, apri un *issue* o invia una *pull request* su GitHub.
+### Operational Overview
+- Dashboard view of arrivals/departures
+- Highlights delays and cancellations
+
+## Tech Stack
+
+- Java (Swing) — desktop UI
+- PostgreSQL — database
+- JDBC — database connectivity
+- Maven — build and dependency management
+- UML diagrams + technical documentation
+
+## Documentation
+The repository includes comprehensive documentation written in Italian:
+- UML diagrams (conceptual/logical, class diagrams, sequence diagrams)
+- GUI interaction manual
+- error handling notes
+
+Files are available under:
+```bash
+documentazione/
+```
+## Contribution Overview
+
+This project was developed collaboratively by the team, with shared ownership across all components.
+
+All team members contributed across the overall system.
+
+## Authors
+- Carmine Sgariglia
+- Mattia Lemma
+- Massimo Russo
