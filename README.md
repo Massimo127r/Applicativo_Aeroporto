@@ -57,6 +57,15 @@ Additional features include:
 - JDBC — database connectivity
 - Maven — build and dependency management
 - UML diagrams + technical documentation
+## Database Layer
+
+The relational database schema and PL/pgSQL logic used by this application were designed
+as part of a dedicated Databases course project.
+
+The database project is maintained in a separate repository:
+https://github.com/CarmineSgariglia/BDD_Project
+
+This repository focuses on the application layer and its integration with the database.
 
 ## Documentation
 The repository includes comprehensive documentation written in Italian:
