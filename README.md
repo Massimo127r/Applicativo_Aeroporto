@@ -26,6 +26,9 @@ The application supports role-based access for:
 Additional features include:
 - real-time flight overview with delays/cancellations
 - search and filtering on flights, bookings, passengers, and baggage
+## Application Preview
+
+![Application preview](application-preview.png)
 
 ## Core Functionality
 
