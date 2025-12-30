@@ -57,6 +57,14 @@ Funzionalità aggiuntive includono:
 - JDBC — connettività al database
 - Maven — build e gestione delle dipendenze
 - UML — diagrammi e documentazione tecnica
+  
+## Livello Database
+
+Lo schema del database e la logica PL/pgSQL utilizzati dall’applicazione sono stati
+progettati nell’ambito di un progetto separato per il corso di Basi di Dati.
+
+Repository del progetto DB:
+https://github.com/CarmineSgariglia/BDD_Project
 
 ## Documentazione
 
